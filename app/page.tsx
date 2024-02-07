@@ -86,8 +86,8 @@ export default function Home({ searchParams }: { searchParams: any }) {
       </div>
 
       {/* 게시글 컴포넌트 */}
-      {allPostsData.map((post) => (
-        <PostCard {...post} />
+      {allPostsData.map((post, idx) => (
+        <PostCard key={idx} {...post} />
       ))}
 
       {/* 페이지 네이션 컴포넌트 */}
