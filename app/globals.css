@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+.tagCardMobile::-webkit-scrollbar {
+    width: 10px;
+    height: 4px;
+}
+
+.tagCardMobile::-webkit-scrollbar-thumb {
+    background: #fcd34d;
+}
+
+
+
+.tagCardPc::-webkit-scrollbar {
+    width:4px;
+    height: 4px;
+}
+
+.tagCardPc::-webkit-scrollbar-thumb {
+    background: #fcd34d;
+}
+
+
+@media (max-width: 940px) {
+    .tagCardPc {
+        display: none;
+    }
+}

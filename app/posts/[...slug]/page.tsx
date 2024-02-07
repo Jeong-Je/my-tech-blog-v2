@@ -3,12 +3,15 @@ import { allPosts } from "contentlayer/generated"
 
 import { Metadata } from "next"
 import { Mdx } from "@/components/mdx-components"
+import ScrollIndicator from "@/components/ScrollIndicator"
 
 interface PostProps {
   params: {
     slug: string[]
   }
 }
+
+console.log('1');
 
 async function getPostFromParams(params: PostProps["params"]) {
   const slug = params?.slug?.join("/")
@@ -50,7 +53,9 @@ export default async function PostPage({ params }: PostProps) {
   }
 
   return (
-    <article className="py-6 prose dark:prose-invert">
+    <>
+    <ScrollIndicator />
+    <article className="pt-32 py-6 prose mx-auto dark:prose-invert">
       <h1 className="mb-2">{post.title}</h1>
       {post.description && (
         <p className="text-xl mt-0 text-slate-700 dark:text-slate-200">
@@ -60,5 +65,6 @@ export default async function PostPage({ params }: PostProps) {
       <hr className="my-4" />
       <Mdx code={post.body.code} />
     </article>
+    </>
   )
 }
