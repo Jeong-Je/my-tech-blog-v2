@@ -7,7 +7,34 @@ module.exports = {
   ],
   darkMode: ["class"],
   theme: {
-    extend: {},
+    extend: {
+      typography: {
+        DEFAULT: {
+          css: {
+            "code::before": {
+              content: "''",
+            },
+            "code::after": {
+              content: "''",
+            },
+            code: {
+              padding: "3px",
+              "font-weight": "400",
+              backgroundColor: "#e7e5e4",
+              borderRadius: "0.5rem",
+              color: "#ef4444",
+            },
+            cite: {
+              color: "grey",
+              "font-size": "0.85rem",
+              display: "block",
+              "text-align": "center",
+              "overflow-x": "auto", // 모바일 버전에서 url이 너무 길 경우 대비
+            },
+          },
+        },
+      },
+    },
   },
   plugins: [require("@tailwindcss/typography")],
-}
+};

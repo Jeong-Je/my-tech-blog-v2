@@ -11,8 +11,6 @@ interface PostProps {
   }
 }
 
-console.log('1');
-
 async function getPostFromParams(params: PostProps["params"]) {
   const slug = params?.slug?.join("/")
   const post = allPosts.find((post) => post.slugAsParams === slug)
@@ -55,7 +53,7 @@ export default async function PostPage({ params }: PostProps) {
   return (
     <>
     <ScrollIndicator />
-    <article className="pt-32 py-6 prose mx-auto dark:prose-invert">
+    <article className="pt-32 py-6 prose mx-auto dark:prose-invert max-sm:mx-5">
       <h1 className="mb-2">{post.title}</h1>
       {post.description && (
         <p className="text-xl mt-0 text-slate-700 dark:text-slate-200">

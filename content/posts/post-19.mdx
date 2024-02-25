@@ -15,14 +15,12 @@ git restore 파일명
 ```
 `restore` 명령어를 사용하면 특정 파일을 `최근 커밋 상태`로 되돌릴 수 있습니다.
 
-<br />
 
 ```
 git restore --source 커밋ID 파일명
 ```
 위 방식은 파일을 `특정 커밋 상태`로 되돌릴 수 있습니다.
 
-<br />
 
 ```
 git restore --staged 파일명
@@ -50,8 +48,6 @@ b.txt의 커밋을 취소하고자 위 명령어를 입력하면 `2ff6fbb` 커�
 git revert 커밋ID 커밋ID
 ```
 여러 개의 커밋을 동시에 취소할 수 있습니다.
-
-<br/>
 ```
 git revert HEAD
 ```
@@ -71,7 +67,6 @@ git reset --hard 커밋ID
 ![git-reset-image](/images/post-19/git-reset-image.png)
 <cite>https://codingapple.com/course/git-and-github/</cite>
 
-<br />
 ```
 git reset --soft 커밋ID
 ```

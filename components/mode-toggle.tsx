@@ -7,7 +7,7 @@ export function ModeToggle() {
   const { setTheme, theme } = useTheme();
 
   return (
-    <button onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
+    <button className="align-middle" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
       {theme !== "dark" ? (
         <MdDarkMode color="black" size={25} />
       ) : (

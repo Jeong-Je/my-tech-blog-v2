@@ -1,0 +1,81 @@
+---
+title: "[디자인패턴] 싱글톤(Singleton)"
+date: 2024-02-22
+tags:
+- CS
+- java
+- C++
+description: 객체를 하나만 만들어야 하는 경우에는 싱글톤
+---
+
+## 싱글톤(Singleton)이란?
+생성자가 여러번 호출되어도 객체는 하나만 생성되고 최초 생성 이후에 생성한 객체는 최초의 객체를 리턴하도록 하여 메모리를 절약할 수 있는 디자인 패턴입니다.
+
+대부분의 언어에서 싱글톤 생성은 자체 지원하지 않으므로 개발자가 직접 구현해야 됩니다.
+
+
+
+## 구현 방식
+생성자를 클래스 자체에서만 사용할 수 있도록 `private`등의 접근제한자를 통하여 외부에서는 생성자를 호출 못하도록 제한하여야 합니다.
+
+![Singleton_UML_class_diagram](/images/post-20/Singleton_UML_class_diagram.svg.png)
+<cite>싱글톤 다이어그램</cite>
+ 
+
+### 자바에서 구현 예시
+```java
+class Singleton {
+    private static Singleton one;
+    private Singleton() {  //외부에서 클래스 생성을 제한
+    }
+
+    public static Singleton getInstance() {
+        if(one==null) {
+            one = new Singleton();
+        }
+        return one;
+    }
+}
+
+public class Sample {
+    public static void main(String[] args) {
+        Singleton singleton1 = Singleton.getInstance();
+        Singleton singleton2 = Singleton.getInstance();
+        System.out.println(singleton1 == singleton2);  // true 출력
+    }
+}
+```
+
+
+### C++에서 구현 예시
+```cpp
+#include <iostream>
+
+class Singleton {
+private:
+    static Singleton* one;
+    Singleton() {} // 외부에서 클래스 생성을 제한
+public:
+    static Singleton* getInstance() {
+        if (one == NULL) {
+            one = new Singleton();
+        }
+        return one;
+    }
+};
+
+Singleton* Singleton::one = nullptr; // 정적 변수 초기화
+
+int main() {
+    Singleton* singleton1 = Singleton::getInstance();
+    Singleton* singleton2 = Singleton::getInstance();
+
+
+    //true 출력
+    if (singleton1 == singleton2) {
+        std::cout << "true";
+    }
+
+}
+
+```

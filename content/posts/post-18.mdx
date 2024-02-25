@@ -13,7 +13,6 @@ description: branch 와 다양한 merge 방법 그리고 충돌에 대해서
 git branch 브랜치이름
 ```
 위 명령어를 통해서 프로젝트 복사본인 브랜치를 만들 수 있습니다.
-<br />
 ```
 git switch 브랜치이름
 ```
@@ -66,7 +65,6 @@ merge 과정에서 어느 브랜치의 변경 사항을 적용할 지 몰라서 
 merge 명령을 내리면 두 브랜치의 코드를 합쳐서 새로운 commit을 자동으로 만들어 주는데
 
 이를 `3-way commit`이라고 부릅니다.
-<br />
 ### fast-forward merge
 ![fast-forward-merge](/images/post-18/fast-forward-merge.png)
 <cite>https://codingapple.com/course/git-and-github/</cite>
@@ -79,7 +77,6 @@ main 브랜치에는 신규 commit이 없고
 
 이를 `fast-forward  merge`라고 합니다.
 
-<br />
 
 ### rebase and merge
 ![rebase-and-merge](/images/post-18/rebase-and-merge.png)
@@ -102,7 +99,6 @@ main말고 다른 브랜치끼리도 가능합니다.
 
 좋은 방법 같지만 단점으로는 충돌 이슈가 자주 발생한다는 것입니다.
 
-<br />
 
 ### squash and merge
 ![squash-and-merge](/images/post-18/squash-and-merge.png)
@@ -128,7 +124,6 @@ merge할 때 --squash 옵션을 추가 해주면 됩니다.
 ```
 git branch -d 브랜치명
 ```
-<br />
 > merge를 안한 브랜치 삭제는
 ```
 git branch -D 브랜치명

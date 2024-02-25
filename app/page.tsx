@@ -68,13 +68,13 @@ export default function Home({ searchParams }: { searchParams: any }) {
       </div>
 
       <div className="max-w-[640px] mx-auto">
-        <div className="rounded-lg mt-8 p-4 bg-gray-200 max-sm:mx-5">
-          <span>
+        <div className="rounded-lg my-4 p-4 bg-gray-200 max-sm:mx-5">
+          <span className="text-black">
             ℹ️ 이 곳은 제가 공부한 내용을 정리하고 기록하는 공간입니다.🚀✨
           </span>
         </div>
 
-        <div className="prose dark:prose-invert">
+        <div className="prose dark:prose-invert max-sm:mx-5">
           {searchParams.tag !== "ALL" ? (
             <h3>
               📝 {searchParams.tag} ({postCount})

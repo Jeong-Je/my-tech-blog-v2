@@ -10,10 +10,10 @@ export const TagCardPc = ({
   // console.log(tags);
   return (
     <>
-      <h3 className="text-white my-0">
-        📒 tags <small className="text-white">({tags.length})</small>
+      <h3 className="my-0 dark:prose-invert">
+        📒 tags <small>({tags.length})</small>
       </h3>
-      <div className="tagCardPc flex flex-col overflow-auto h-[266px]">
+      <div className="tagCardPc flex flex-col overflow-auto h-[266px] ">
         {tags.map((tag: any, idx: any) => (
           <Link
             href={tag === "C++" ? `/?tag=C%2B%2B` : `/?tag=${tag}`}

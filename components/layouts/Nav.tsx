@@ -41,9 +41,9 @@ export default function Nav() {
           <div className="hidden sm:flex">
             <ul className="hidden sm:flex list-none">
               <li>
-                <ModeToggle />
+                  <ModeToggle />
               </li>
-              <li className="ml-10 mr-1 uppercase ease-in duration-200 hover:text-2xl text-xl">
+              <li className="ml-7 mr-1 uppercase ease-in duration-200 hover:text-2xl text-xl">
                 <Link href="/">Posts</Link>
               </li>
               <li className="ml-10 mr-1 uppercase ease-in duration-200 hover:text-2xl text-xl">
