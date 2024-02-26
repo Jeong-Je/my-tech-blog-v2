@@ -8,10 +8,10 @@ export function ModeToggle() {
 
   return (
     <button className="align-middle" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
-      {theme !== "dark" ? (
-        <MdDarkMode color="black" size={25} />
+      {theme === "dark" ? (
+        <MdDarkMode size={25} />
       ) : (
-        <MdLightMode size={25} />
+        <MdLightMode  size={25} />
       )}
     </button>
   );
