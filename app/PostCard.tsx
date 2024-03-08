@@ -4,7 +4,7 @@ import { Post } from "contentlayer/generated";
 
 export const PostCard = (post: Post) => {
   return (
-    <div className="">
+    <div className="prose dark:prose-invert">
       <hr />
       <div className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">
         {/* Date */}
@@ -19,7 +19,7 @@ export const PostCard = (post: Post) => {
             <h2 className="my-1">{post.title}</h2>
           </Link>
           {post.tags?.map((tag, idx) => (
-            <Link href={tag==="C++"?'/?tag=C%2B%2B' : `/?tag=${tag}`} key={idx}>
+            <Link href={tag==="C++"?'/blog?tag=C%2B%2B' : `/blog?tag=${tag}`} key={idx}>
               <span key={idx} className="pt-3 pr-4 no-underline text-pink-500">
                 #{tag}
               </span>

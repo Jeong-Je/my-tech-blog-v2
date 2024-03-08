@@ -8,7 +8,7 @@ export const tags: Array<string> = [
     "AuthN",
     "Assembly",
     "Debug",
-    "Algorithnm",
+    "Algorithm",
     "DB",
     "Redis",
     "NestJS",
@@ -17,5 +17,6 @@ export const tags: Array<string> = [
     "TCP/IP",
     "Network",
     "Next.js",
+    "Recycle bin"
   ];
   
