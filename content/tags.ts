@@ -1,0 +1,21 @@
+export const tags: Array<string> = [
+    "CS",
+    "java",
+    "C++",
+    "git",
+    "github",
+    "WEB",
+    "AuthN",
+    "Assembly",
+    "Debug",
+    "Algorithnm",
+    "DB",
+    "Redis",
+    "NestJS",
+    "Socket",
+    "GraphQL",
+    "TCP/IP",
+    "Network",
+    "Next.js",
+  ];
+  

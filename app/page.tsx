@@ -3,7 +3,6 @@ import { compareDesc } from "date-fns";
 import { Pagination } from "./Pagination";
 import { PostCard } from "./PostCard";
 import { TagCardPc } from "@/components/layouts/TagCard/TagCardPc";
-import { TagCardMobile } from "@/components/layouts/TagCard/TagCardMobile";
 
 export default function Home({ searchParams }: { searchParams: any }) {
   if (!searchParams.page) {
@@ -22,14 +21,6 @@ export default function Home({ searchParams }: { searchParams: any }) {
   let tags: Array<string> = [];
 
   tags.push("ALL");
-
-  allPostsData.map((post) => {
-    if (post.tags) {
-      tags.push(...post.tags); // 태그 배열을 추가
-    }
-  });
-
-  tags = Array.from(new Set(tags)); // 중복 값 제거
 
   //태그에 맞는 게시글 불러오기
   if (searchParams.tag !== "ALL") {
@@ -57,31 +48,17 @@ export default function Home({ searchParams }: { searchParams: any }) {
   let pageIntoArray = Array.from(Array(pagination).keys());
 
   return (
-    <div className="prose max-w-[940px] mx-auto dark:prose-invert">
+    <div className="prose dark:prose-invert max-w-5xl mx-auto">
       {/* 사이드 태그 카드 */}
-      <div className="tagCardPc pt-32 w-32 h-6 fixed">
+      {/* <div className="tagCardPc pt-32 w-32 h-6 fixed">
         <TagCardPc searchParams={searchParams} tags={tags} />
-      </div>
+      </div> */}
 
       <div>
-        <TagCardMobile searchParams={searchParams} tags={tags} />
-      </div>
-
-      <div className="max-w-[640px] mx-auto">
-        <div className="rounded-lg my-4 p-4 bg-gray-200 max-sm:mx-5">
-          <span className="text-black">
-            ℹ️ 이 곳은 제가 공부한 내용을 정리하고 기록하는 공간입니다.🚀✨
-          </span>
-        </div>
-
-        <div className="prose dark:prose-invert max-sm:mx-5">
-          {searchParams.tag !== "ALL" ? (
-            <h3>
-              📝 {searchParams.tag} ({postCount})
-            </h3>
-          ) : (
-            <h3>📝 All Posts ({postCount})</h3>
-          )}
+        <div>
+          <h1 className="">Latest</h1>
+          <p>이 곳은 제가 공부한 내용을 기록하는 공간입니다.</p>
+          <p>아래는 최신 포스트 5개입니다.</p>
         </div>
       </div>
 
@@ -91,11 +68,11 @@ export default function Home({ searchParams }: { searchParams: any }) {
       ))}
 
       {/* 페이지 네이션 컴포넌트 */}
-      <div className="flex justify-center">
+      {/* <div className="flex justify-center">
         {pageIntoArray.map((page, idx) => (
           <Pagination key={idx} searchParams={searchParams} page={page} />
         ))}
-      </div>
+      </div> */}
     </div>
   );
 }

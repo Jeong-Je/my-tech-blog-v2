@@ -14,6 +14,9 @@ module.exports = {
             "code::before": {
               content: "''",
             },
+            a: {
+              textDecoration: "none", // Use text-decoration property
+            },
             "code::after": {
               content: "''",
             },

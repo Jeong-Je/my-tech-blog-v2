@@ -30,7 +30,7 @@ const ScrollIndicator = () => {
   }, [scroll]);
 
   return (
-    <div className="fixed h-1 w-full">
+    <div className="top-0 fixed h-1 w-full">
       <div
         className="h-full bg-amber-300"
         style={{ width: scroll + "%" }} 

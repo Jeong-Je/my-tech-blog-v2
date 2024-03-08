@@ -7,8 +7,9 @@ import {
   AiOutlineClose,
   AiOutlineGithub,
   AiOutlineMail,
+  AiOutlineSearch,
 } from "react-icons/ai";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 
 export default function Nav() {
@@ -18,45 +19,36 @@ export default function Nav() {
     setHamburger(!hamburger);
   };
 
+
   const style = { color: "#ffffff" };
   return (
     <>
       <nav
-        className={`h-20 backdrop-blur-md fixed left-0 right-0 flex justify-center shadow-xl`}
+        className={`max-w-5xl mx-auto flex items-center justify-between py-10`}
       >
-        <div className="max-w-[650px] flex justify-between items-center h-full w-full px-0 max-sm:mx-5 prose dark:prose-invert">
-          {/* 로고 */}
-          <Link href="/">
-            <Image
-              src={Logo}
-              height="50"
-              alt="Logo"
-              className="cursor-pointer"
-              placeholder="blur"
-              blurDataURL={"/logo.png"}
-            />
-          </Link>
+        {/* 로고 */}
+        <Link href="/" className="text-2xl font-semibold">
+          {"<Jeong Je/>"}
+        </Link>
 
-          {/* 네비게이션 */}
-          <div className="hidden sm:flex">
-            <ul className="hidden sm:flex list-none">
-              <li>
-                  <ModeToggle />
-              </li>
-              <li className="ml-7 mr-1 uppercase ease-in duration-200 hover:text-2xl text-xl">
-                <Link href="/">Posts</Link>
-              </li>
-              <li className="ml-10 mr-1 uppercase ease-in duration-200 hover:text-2xl text-xl">
-                <Link href="/tags">Tags</Link>
-              </li>
-            </ul>
-          </div>
+        {/* 네비게이션 */}
+        <div className="hidden sm:flex space-x-4">
+          <Link href="/blog">Blog</Link>
+          <Link href="/tags">Tags</Link>
+          <Link href="/about">About</Link>
+          <button>
+            <AiOutlineSearch size={25} />
+          </button>
+          <ModeToggle />
+        </div>
 
-          {/* 햄버거바(메뉴) 와 다크모드 토글 스위치 */}
-          <div className="flex gap-x-6 sm:hidden cursor-pointer">
-            <ModeToggle />
-            <AiOutlineMenu onClick={handleHamburger} size={25} />
-          </div>
+        {/* 햄버거바(메뉴) 와 다크모드 토글 스위치 */}
+        <div className="flex gap-x-6 sm:hidden cursor-pointer">
+          <button>
+            <AiOutlineSearch size={25} />
+          </button>
+          <ModeToggle />
+          <AiOutlineMenu onClick={handleHamburger} size={25} />
         </div>
 
         {/* 햄버거바로 인한 사이드메뉴 */}
@@ -78,13 +70,19 @@ export default function Nav() {
                 onClick={() => setHamburger(false)}
                 className="py-4 cursor-pointer"
               >
-                <Link href="/">Posts</Link>
+                <Link href="/">Blog</Link>
               </li>
               <li
                 onClick={() => setHamburger(false)}
                 className="py-4 cursor-pointer"
               >
                 <Link href="/tags">Tags</Link>
+              </li>
+              <li
+                onClick={() => setHamburger(false)}
+                className="py-4 cursor-pointer"
+              >
+                <Link href="/about">About</Link>
               </li>
             </ul>
           </div>

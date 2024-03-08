@@ -27,11 +27,11 @@ export default function Home() {
   //   console.log(tags);
 
   return (
-    <div className="prose mx-auto pt-32 flex items-center justify-center max-sm:mx-9 dark:prose-invert">
-      <h1 className="border pr-3 my-auto border-r-white border-l-0 border-t-0 border-b-0">
+    <div className="max-w-5xl mx-auto flex items-center justify-center max-sm:mx-9 ">
+      <h1 className="text-3xl pr-3 my-auto font-bold">
         Tags
       </h1>
-      <div className="ml-3 flex flex-wrap prose prose-a:no-underline dark:prose-invert">
+      <div className="ml-3 text-center text-pink-500 border border-x-pink-500 border-y-0">
         {Object.keys(tags).map((tag, idx) => (
           <Link key={idx} className="cursor-pointer mr-3" href={tag==="C++"?'/?tag=C%2B%2B' : `/?tag=${tag}`}>
             {tag}({tags[tag]}){" "}
