@@ -1,6 +1,6 @@
 "use client";
-import Image from "next/image";
 import Logo from "../../public/Logo.png";
+import Image from "next/image";
 import Link from "next/link";
 import {
   AiOutlineMenu,
@@ -19,7 +19,6 @@ export default function Nav() {
     setHamburger(!hamburger);
   };
 
-
   const style = { color: "#ffffff" };
   return (
     <>
@@ -27,14 +26,21 @@ export default function Nav() {
         className={`max-w-5xl mx-auto flex items-center justify-between py-10`}
       >
         {/* 로고 */}
-        <Link href="/" className="text-2xl font-semibold">
-          {"<Jeong Je/>"}
+        <Link href="/" className="flex text-2xl font-semibold items-center">
+          <Image
+            src={Logo}
+            alt="Logo"
+            className="max-md:hidden"
+            placeholder="blur"
+            blurDataURL={"/logo.png"}
+          />
+          {"<Jeong />"}
         </Link>
 
         {/* 네비게이션 */}
         <div className="hidden sm:flex space-x-4">
           <Link href="/blog">Blog</Link>
-          <Link href="/tags">Tags</Link>
+          <Link href="/category">Category</Link>
           <Link href="/about">About</Link>
           <button>
             <AiOutlineSearch size={25} />
@@ -76,7 +82,7 @@ export default function Nav() {
                 onClick={() => setHamburger(false)}
                 className="py-4 cursor-pointer"
               >
-                <Link href="/tags">Tags</Link>
+                <Link href="/category">Category</Link>
               </li>
               <li
                 onClick={() => setHamburger(false)}

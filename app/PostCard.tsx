@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { Post } from "contentlayer/generated";
+import { Blog} from "contentlayer/generated";
 
-export const PostCard = (post: Post) => {
+export const PostCard = (post: Blog) => {
   return (
-    <div className="prose dark:prose-invert">
+    <div>
       <hr />
       <div className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">
         {/* Date */}
