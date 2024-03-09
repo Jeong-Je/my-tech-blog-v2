@@ -1,11 +1,11 @@
 import RSS from "rss";
 
-import { allPosts } from "contentlayer/generated";
+import { allBlogs } from "contentlayer/generated";
 
 const URL = "https://jeongje.vercel.app";
 
 export async function GET() {
-  const posts = allPosts.map((post) => ({
+  const posts = allBlogs.map((post) => ({
     title: post.title,
     description: post.description,
     date: post.date,
