@@ -15,7 +15,12 @@ module.exports = {
               content: "''",
             },
             a: {
-              textDecoration: "none", // Use text-decoration property
+              textDecoration: "none", 
+              color: "#0099ff",
+              "&:hover": {
+                color: "#1d4ed8", 
+                textDecoration: "underline", 
+              },
             },
             "code::after": {
               content: "''",
@@ -33,6 +38,9 @@ module.exports = {
               display: "block",
               "text-align": "center",
               "overflow-x": "auto", // 모바일 버전에서 url이 너무 길 경우 대비
+            },
+            img: {
+              margin: "auto",
             },
           },
         },

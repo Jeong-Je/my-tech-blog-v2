@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { compareDesc, format, parseISO } from "date-fns";
 import { allBlogs } from "contentlayer/generated";
-import { PostCard } from "../PostCard";
 import { tags } from "@/content/tags";
+
+const POSTS_PER_PAGE = 5;
 
 export default function BlogPage({ searchParams }: { searchParams: any }) {
   let allPostsData = allBlogs.sort((a, b) =>
@@ -18,14 +19,13 @@ export default function BlogPage({ searchParams }: { searchParams: any }) {
   const postCount = allPostsData.length;
 
   /* 페이지 네이션 */
-  const pagination = Math.ceil(allPostsData.length / 5);
+  const pagination = Math.ceil(allPostsData.length / POSTS_PER_PAGE);
 
   if (postCount > 1) {
     const currentPage = searchParams.page ? parseInt(searchParams.page) : 1;
-    const postsPerPage = 5;
 
-    const startIndex = (currentPage - 1) * postsPerPage;
-    const endIndex = currentPage * postsPerPage;
+    const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
+    const endIndex = currentPage * POSTS_PER_PAGE;
 
     allPostsData = allPostsData.slice(startIndex, endIndex);
   }

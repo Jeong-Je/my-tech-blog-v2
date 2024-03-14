@@ -14,7 +14,8 @@ export default function Home() {
     <div className="prose dark:prose-invert max-w-5xl mx-auto">
       <div>
         <div>
-          <h1 className="">Latest</h1>
+          <p className="my-0">소소하게 포스팅</p>
+          <h1>Latest</h1>
         </div>
       </div>
 

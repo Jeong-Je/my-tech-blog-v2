@@ -59,11 +59,12 @@ export default function Nav() {
 
         {/* 햄버거바로 인한 사이드메뉴 */}
         <div
-          className={
-            hamburger
-              ? "fixed left-0 top-0 w-[65%] sm:hidden h-screen bg-[#ecf0f3] p-10 ease-in duration-500"
-              : "fixed left-[100%] top-0 p-10 ease-in duration-500"
-          }
+          className={`fixed p-10 ease-in duration-500
+            ${
+              hamburger
+                ? "left-0 top-0 w-[65%] sm:hidden h-screen bg-[#ecf0f3] dark:bg-gray-900 dark:text-white"
+                : "left-[100%] top-0"
+            }`}
         >
           <div className="z-1 flex w-full items-center justify-end">
             <div onClick={handleHamburger} className="cursor-pointer">
