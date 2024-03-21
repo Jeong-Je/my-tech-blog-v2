@@ -5,18 +5,18 @@ import { MdRssFeed } from "react-icons/md";
 export default function Footer() {
   return (
     <>
-      <div className="mb-3 flex space-x-4 justify-center">
+      <div className="my-6 flex space-x-4 justify-center">
         <Link href="/">
-          <AiOutlineHome />
+          <AiOutlineHome size={25} />
         </Link>
         <a href="mailto:jeongjeson656@gmail.com">
-          <AiOutlineMail />
+          <AiOutlineMail size={25} />
         </a>
         <a href="https://github.com/Jeong-Je" target="_blank">
-          <AiOutlineGithub />
+          <AiOutlineGithub size={25} />
         </a>
         <a href="https://jeongje.vercel.app/feed.xml" target="_blank">
-          <MdRssFeed />
+          <MdRssFeed size={25} />
         </a>
       </div>
     </>
