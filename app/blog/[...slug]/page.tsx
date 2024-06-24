@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 import { allBlogs } from "contentlayer/generated"
-
+import { format, parseISO } from "date-fns";
 import { Metadata } from "next"
 import { Mdx } from "@/components/mdx-components"
 import ScrollIndicator from "@/components/ScrollIndicator"
@@ -60,6 +60,9 @@ export default async function PostPage({ params }: PostProps) {
           {post.description}
         </p>
       )}
+      <time dateTime={post.date} className="block text-sm">
+        {format(parseISO(post.date), "yyyy년 MM월 dd일")}
+      </time>
       <hr className="my-4" />
       <Mdx code={post.body.code} />
     </article>
