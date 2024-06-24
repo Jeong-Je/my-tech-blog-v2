@@ -8,6 +8,9 @@ module.exports = {
   darkMode: ["class"],
   theme: {
     extend: {
+      colors: {
+        'light-bg': '#F0F0F5',
+      },
       typography: {
         DEFAULT: {
           css: {

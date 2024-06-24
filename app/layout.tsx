@@ -23,7 +23,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="kr">
       <body
-        className={`mx-auto antialiased min-h-screen max-lg:mx-5 bg-white dark:bg-zinc-800 text-slate-900 dark:text-slate-50 ${space_grotesk.className}`}
+        className={`mx-auto antialiased min-h-screen max-lg:mx-5 bg-light-bg dark:bg-zinc-800 text-slate-900 dark:text-slate-50 ${space_grotesk.className}`}
       >
         <ThemeProvider attribute="class" defaultTheme="light">
           <div>
