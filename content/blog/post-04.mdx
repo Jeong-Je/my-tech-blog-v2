@@ -1,9 +1,9 @@
 ---
-title: "[리버싱 - 1] : 함수 주변의 어셈블리 코드"
+title: "[리버싱 - 1] : 함수의 스택 프레임 이해하기"
 date: 2024-06-24
 tags:
 - REVERSING
-description: EBP와 ESP 그리고 EBP 주변의 코드들
+description: 어셈블리코드에서 함수의 진입점을 파악하는 법과 스택 프레임 이해하기
 ---
 
 ```perl
@@ -59,7 +59,7 @@ sub esp, 54
 |  local_var2     |  <- EBP - 8
 ```
 
-핵심은 아래의 어셈블리 코드를 보고
+리버싱에서 핵심은 아래의 어셈블리 코드를 보고
 ```perl
 push ebp
 mov ebp, esp
