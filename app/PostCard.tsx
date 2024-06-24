@@ -20,7 +20,7 @@ export const PostCard = (post: Blog) => {
           </Link>
           {post.tags?.map((tag, idx) => (
             <Link href={tag==="C++"?'/blog?tag=C%2B%2B' : `/blog?tag=${tag}`} key={idx}>
-              <span key={idx} className="pt-3 pr-4 no-underline text-pink-500">
+              <span key={idx} className="pt-3 pr-4 text-pink-500">
                 #{tag}
               </span>
             </Link>

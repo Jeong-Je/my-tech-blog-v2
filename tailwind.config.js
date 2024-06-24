@@ -18,8 +18,7 @@ module.exports = {
               textDecoration: "none", 
               color: "#0099ff",
               "&:hover": {
-                color: "#1d4ed8", 
-                textDecoration: "underline", 
+                color: "#1d4ed8",
               },
             },
             "code::after": {
