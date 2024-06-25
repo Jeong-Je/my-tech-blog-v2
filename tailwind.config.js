@@ -27,6 +27,9 @@ module.exports = {
             "code::after": {
               content: "''",
             },
+            hr: {
+              borderColor: "#000000",
+            },
             code: {
               padding: "3px",
               "font-weight": "400",
