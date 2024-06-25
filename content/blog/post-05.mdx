@@ -1,0 +1,171 @@
+---
+title: "[리버싱 - 2] : 함수의 호출 규약"
+date: 2024-06-25
+tags:
+- REVERSING
+description: 함수 분석 이전에 알아야 할 함수의 호출 규약
+---
+
+[이전 장](http://localhost:3002/blog/post-04)에서 함수의 진입점 파악과 파라미터와 지역변수는 스택 프레임 어디에 위치하겠군을 대략 알 수 있었다.
+함수를 분석하기 위한 사전 작업으로 이전 내용은 여전히 부족하다. 함수의 윤곽과 인자가 몇 개인지 등에 대한 정보를 추출해 낼 수 있어야 한다. 이를 위해 함수의
+호출 규약을 알아봐야 된다.
+
+## 함수의 호출 규약
+함수의 호출 규약은 대표적으로 `__cdecl`, `__stdcall`, `__fastcall`, `__thiscall` 4가지가 존재한다.
+***
+### __cdecl
+`__cdecl`를 사용한 간단한 sum 함수를 아래와 같이 만들었다.
+```c
+int __cdecl sum(int a, int b)
+{
+    int c = a + b;
+    return c;
+}
+
+int main(int argc, char* argv[])
+{
+    sum(1,2);
+    return 0;
+}
+```
+위의 간단한 main 함수를 `디스어셈블`해보자.
+(<small>sum 함수의 디스어셈블된 코드는 아래 __stacall에서 작성</small>)
+```perl
+main:
+push 2
+push 1
+call calling.00401000
+add esp, 8 // 스택 보정 명령어
+```
+
+`call calling.00401000` 이 부분이 sum 함수를 호출 하는 부분이다. 함수의 사용을 마치면 사용한 스택 포인터를 다시 보정 해야되는 작업이 필요하다.
+함수의 호출 아래 부분에서(함수를 호출한 곳에서) `add esp, 8`같이 스택을 보정하는 부분이 나온다면 해당 함수는 `__cdecl`방식이라고 생각하면 된다.
+`esp` 주소를 8바이트 조정하므로 해당 함수의 파라미터는 2개라는 것을 함수를 들어 가보지 않아도 알 수 있다. 함수 호출 이전에 `push` 문이 2개 존재하는 것을 봐도 파라미터가 2개일 것을 짐작할 수 있었다.
+
+함수의 스택 포인터를 함수 내부에서 보정하는 방식도 있다. 그 방식이 `__stdcall`방식이다.
+***
+### __stdcall
+메인 함수는 그대로 두고 sum 함수에 __cdecl 대신 `__stdcall`를 붙여보자.
+```c
+int __stdcall sum(int a, int b)
+{
+    int c = a + b;
+    return c;
+}
+```
+위 함수를 디스어셈블하면 아래와 같이 된다.
+```perl
+sum: 
+push ebp
+mov ebp, esp
+push ecx
+mov eax, [ebp+arg_0]
+add eax, [ebp_arg_4]
+mov [ebp+var_4], eax
+mov eax, [ebp+var_4]
+mov esp, ebp
+pop ebp
+retn 8 // 스택 보정 명령어
+```
+```perl
+main:
+push 2
+push 1
+call calling.00401000
+```
+눈 여겨 봐야 할 부분은 `main`함수에서 `call calling.00401000` 다음 부분에 `__cdecl`와 같은 스택 보정 명령어가 없다는 것이다.
+대신 sum 함수에서 `retn 8`로 스택을 보정한다. `__cdecl`의 경우 sum 함수의 디스어셈블된 코드는 위 코드와 똑같지만 retn 8이 아닌 그냥 `retn`을 사용한다 위와 같이 함수 내부에서 스택을 보정하는 방식을 `__stdcall` 방식이고 대표적으로 `Win32 API`는 `__stdcall` 방식을 이용한다.
+
+위의 경우는 스택 보정과 파라미터 개수 파악은 함수 내부에서 진행하여야 한다.
+***
+### __fastcall
+이번은 `__fastcall` 방식으로 sum 함수를 만들고 디스어셈블 해보자
+```c
+int __fastcall sum(int a, int b)
+{
+    int c = a + b;
+    return c;
+}
+```
+```perl
+sum: 
+push ebp
+mov ebp, esp
+sub esp, 0Ch // ebp와 esp 간격 벌리기
+mov [ebp+var_C], edx
+mov [ebp+var_8], ecx
+mov eax, [ebp+var_8]
+add eax, [ebp+var_C]
+mov [ebp+var_4], eax
+mov eax, [ebp+var_4]
+mov esp, ebp // 스택 보정 명령어
+pop ebp
+retn
+```
+```perl
+main:
+push ebp
+mov ebp, esp
+mov edx, 2
+mov ecx, 1
+call sub_401000
+xor eax, eax
+pop ebp
+retn
+```
+나한테 그나마 가장 익숙한 방식이다. 학교 시스템 소프트웨어 수업의 예제도 위와 같은 방식으로 진행하였고 스택 프레임을 이해하기 위해
+제일 좋은 방식으로 개인적으로 생각한다.
+
+메인 함수부터 보면 `edx`와 `ecx` 레지스터에 각각 매개변수로 2와 1을 대입한다. `__fastcall`은 함수의 파라미터가 2개 이하일 경우
+인자를 push로 넣지 않고 `ecx`와 `edx` 레지스터를 사용한다. 이는 당연히 메모리를 사용하는 것보다 레지스터를 사용하는 것이 훨씬 빠르기 때문이다.
+
+```kotlin
+|       ...        |
+| return address   |  <- [EBP + 4]
+| saved EBP        |  <- ★EBP★
+| var_4 (c)        |  <- [EBP - 4]
+| var_8 (a)        |  <- [EBP - 8]
+| var_C (b)        |  <- [EBP - 12]
+```
+sum 함수에서 `sub esp, 0Ch`로 ebp와 esp의 간격을 총 12바이트 벌린다. 안에서 사용할 변수가 총 3개이기에 12바이트이다. 그리고 함수를 마치기 전에
+`mov esp, ebp`를 통해 벌려진 스택 간격을 다시 원점으로 돌려논다. 
+
+
+리버스 엔지니어링을 할 때 함수 호출 전에 `edx`와 `ecx` 레지스터에 값을 넣는 것이 보이면
+`__fastcall`규약의 함수라고 생각할 수 있다.
+***
+### __thiscall
+마지막으로 `__thiscall`규약의 함수이다. 4가지 호출 규약 중 가장 어려웠으며 아직 잘 이해가 되지는 않는다.
+주로 `C++ 클래스`에서 이용되는 방법이다.
+
+```cpp
+Class CTemp
+{
+    public:
+      int MemberFunc(int a,int b);
+};
+```
+```perl
+mov eax, dword ptr [ebp-14h]
+push eax
+mov edx, dword ptr [ebp-10h]
+push edx
+lea ecx, [ebp-4]
+call 402000
+```
+가장 큰 특징은 현재 객체의 포인터(`this 포인터`)를 `ecx 레지스터`에 전달한다는 것이다. 하나의 클래스를 만들고 여러 오브젝트를 생성한다면 
+그 형태는 같을지 언정 각각의 오브젝트는 서로 다른 메모리 번지에 존재한다. 
+
+그리고 각각의 오브젝트를 구분하기 위해 `this 포인터`를 사용하고 
+`ecx`에 전달되는 값이 그 this 포인터이다. 해당 클래스에서 사용하는 멤버 변수나 각종 값은 ecx 포인터에서 오프셋 몇 번지를 더하는 식으로 사용할 수 있다.
+```perl
+ecx + x
+ecx + y
+ecx + z
+```
+
+이것이 `__thiscall`규약의 특징이고 인자 전달 방식과 스택 처리 방법은 `__stdcall`과 동일하다. 
+
+C++ 바이너리를 디스어셈블했을 때 어셈블리 코드 중 어느 곳이 멤버 변수이고 어느 곳이 클래스 선언부라고 친절하게 알려주지 않는다.
+C++로 작성된 프로그램을 분석하기 어려움은 여기에 있는 거 같다.
+***
