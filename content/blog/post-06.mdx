@@ -1,0 +1,169 @@
+---
+title: "[리버싱 - 3] : DLL 분석"
+date: 2024-06-26
+tags:
+- REVERSING
+description: EXE와 비슷하지만 다른 DLL 분석
+---
+
+`DLL(Dynamic Link Library)`에도 `EXE`와 마찬가지로 `PE Header`가 있으며 함수, 반복문, 조건문 등으로 구성된 코드이다.
+두드러진 차이점은 실행 중 라이브러리에 있는 함수를 호출하고 로드되는 번지가 고정되어 있는 EXE와 다르게 메모리에 올라갈 때마다
+위치가 바뀐다는 점이 있다.
+
+`DLL`을 IDA 등으로 디스어셈블했을 때와 DLL이 실제로 메모리에 로드됐을 때 번지가 달라 혼동하기 쉽다. 이게 혼동되는 이유는 단지 `Image Base`가 달라졌기 때문이다.
+***
+## DLL의 Image Base
+PEview로 libegl.dll을 봐보면 `Image Base`가 `0x10000000`이다. 이는 DLL을 제작할 때 컴파일러가 기본적으로 지정해주는 번지이다.
+![PEview-dll-imagebase](/images/post-06/PEview-dll-imagebase.png)
+
+이번엔 PEview로 exe파일 하나를 봐보면 `Image Base`가 `0x400000`이다.
+![PEview-exe-imagebase](/images/post-06/PEview-exe-imagebase.png)
+
+위의 예제 `dll`과 `exe`는 `32비트 이미지`로 `Image Base`가 각각 `0x10000000`, `0x400000`이지만
+> 64비트 이미지의 경우 dll과 exe의 Image Base는 각각 0x180000000, 0x140000000이다.
+***
+## DLL의 번지 계산법
+
+DLL의 `Image Base`가 `0x10000000`이여서<small>(64bit에서는 0x180000000)</small> 해당 번지에 로드될 거 같지만 실제로는 다른 경우가 많다. 0x10000000번지에 다른 DLL이 없으면 해당 주소로 로드가 되지만
+이미 다른 DLL이 차지하고 있는 경우 비어있는 다른 번지로 로드가 된다.
+
+DLL의 `Image Base`가 달라졌기 때문에 CALL문과 JMP 등의 상대 주소를 계산하기 위한 `재배치` 작업도 이루어진다.
+`Data Directory`의 `BASERELOC`이 여기에 해당한다 EXE 파일의 경우 이 필드가 `0`으로 비어 있지만 `DLL`파일의 경우 상대 주소와 크기 필드에 값이 채워진다.
+
+그렇다면 DLL 내에서 내가 찾고 싶은 코드는 메모리 어느 주소에 배치되었을까? 이를 확실히 이해하기 위해서는 `PE 파일`을 알아야 하지만 이는 다음 장에서 다루고 주소 계산을 위해 간단히만 알아보자
+
+PE 파일은 여러 섹션으로 구성되지만 중요한 섹션은 아래 세 가지이다.
+
+- `.text`: 실행 코드가 포함된 섹션
+- `.data`: 초기화된 데이터가 포함된 섹션
+- `.bss`: 초기화되지 않은 데이터가 포함된 섹션
+
+PE 파일에는 이 섹션들의 시작 주소를 정의하는 몇 가지 중요한 필드가 있다.
+
+- `Image Base`: PE 파일의 기본 로드 주소
+- `Base of Code`: 코드 섹션(.text)의 시작 주소
+
+32비트 환경의 DLL의 Image Base는 `0x10000000`이고 `Base of Code`의 값은 `0x1000`이라서 원래라면 우리의 실행 코드는 
+`Image Base + Base of Code` = 0x10001000에 위치해야 하지만 이런 경우는 흔치 않다고 위에서 언급했다.
+
+그렇다면 실제 주소를 찾기 위한 방법은 너무 간단하다. 위 수식에서 `Image Base`를 실제 DLL이 메모리에 로드된 `Base Address`로 치환하면 된다.
+
+```python
+# 번지 계산 방법
+Base Address + Base of Code
+```
+
+만약 내가 실행한 DLL이 0x1510000에 로드 되었고 0x10001234번지의 코드를 찾고 싶다면
+
+`Image Base + Base of Code + Offset` = 0x1510000 + 0x1000 + 0x234 = 0x1511234 번지에 해당 코드가 로드돼 있을 것이다.
+
+위에서 봤듯이 32비트 DLL의 경우 `Image Base`가 `0x10000000`이다. LoadLibrary()로 DLL을 로드하면 0x10000000 번지에 올라간다.
+여기서 같은 프로세스에서 로드된 DLL을 복사해서 다시 메모리에 로드해보면 0x10000000이 아닌 전혀 다른 곳에 로드될 것이다. 당연히 0x10000000는 이미 첫번째 DLL이 자리를 차지하고 있기 때문이다.
+
+PE 헤더에서는 이처럼 기준 주소에 로드되지 못했을 경우에 대비해 `재배치 섹션`이라는 것을 제공한다. Image Base를 바꾼 후 주소 계산이 필요한 부분을 재배치 섹션을 통해서 모두 새로 배치해 준다. 이 과정은 운영체제에 의해서 자동으로 처리된다.
+
+주소가 변경되는 부분은 대표적으로 `PUSH`, `JUMP` 등이 있을 것이다. 주소는 어떻게 바뀌었을까? 물론 명령어의 옵코드(push, jmp 등)는 같을 것이나 뒤에 따라오는 오퍼랜드(주소 값)는 바뀔텐데
+`Base Address`에서 `Offset`을 더해주면 된다.... 위에서 언급했던 방법이다.
+***
+## 번지 고정
+그렇다면 DLL이 로드되는 위치를 항상 같은 곳에 로드되게 고정할 수 있을까?
+`#pragma comment()`의 /base: 옵션과 /fixed: 링커 옵션을 사용하면 개발자가 지정한 번지에 항상 배치된다.
+예를 들어 내가 만든 DLL을 항상 0x23400000에 두고 싶다면 아래 코드를 이용하면 된다.
+```c
+#pragma comment(linker, "/base:0x23400000 /fixed")
+```
+
+위 코드를 사용한 DLL은 EXE와 마찬가지로 Data Directory의 BASERELOC이 0으로 비워있을 것이다.
+
+그러나 위 방식을 남용하면 안된다. 내가 DLL을 올리고자 한 위치에 이미 다른 DLL이 자리를 잡고 있다면 새로 올라갈 DLL이 제대로 로드되지 않을 수 있기 때문이다.
+***
+## Export 함수
+DLL에는 외부에서 호출하기 위한 `export` 함수가 있다. 바이너리상에서 확인할 때 이것도 하나의 `Entry Point`가 될 수 있다.
+EXE의 경우 시작 지점이 기본적으로 WinMain() 하나지만, DLL의 경우 export 함수의 개수만큼 Entry Point가 존재한다.
+실제로 IDA에서 DLL을 올린다음 `CTRL + E`를 누르면 해당 DLL의 Entry Point의 개수와 종류를 확인할 수 있다.
+***
+## DllAttach/DllDetach 찾기
+DLL을 개발할 때 `DllMain()`을 건드는 일은 거의 없다. 허나 DLL이 로딩되자마자 해야 할 작업이 있다면 DllMain()에 코드를 넣을 수 밖에 없다.
+
+아래는 DllMain()의 원형이다.
+```cpp
+BOOL WINAPI DllMain(
+    HINSTANCE hinstDLL,  
+    DWORD fdwReason,    
+    LPVOID lpvReserved )  
+{
+    switch( fdwReason ) 
+    { 
+        case DLL_PROCESS_ATTACH:
+            break;
+        case DLL_THREAD_ATTACH:
+            break;
+        case DLL_THREAD_DETACH:
+            break;
+        case DLL_PROCESS_DETACH:
+            break;
+    }
+    return TRUE;
+}
+```
+
+가장 중요한 것은 `fdwReason`이다. fdwReason 값에 따라 케이스문이 존재하는데
+케이스 문의 흐름을 파악하기 위해서 케이스문을 약간 변형시켜보자. 
+
+위 원형 코드 그대로 빌드하면 최적화 옵션에 따라 코드가 통으로 날라가고 return TRUE; 부분만 남을 수 있다.
+
+```cpp
+    switch (fdwReason)
+    {
+    case DLL_PROCESS_ATTACH:
+        printf("ATTACH\n");
+        lpBuffer = (LPBYTE)malloc(sizeof(LPBYTE));
+        break;
+    case DLL_PROCESS_DETACH:
+        printf("DETACH\n");
+        free(lpBuffer);
+        break;
+    case DLL_THREAD_ATTACH:
+    case DLL_THREAD_DETACH:
+        break;
+    }
+```
+
+`ATTACH` 분기에서 `malloc`을 호출하고 `DETACH` 분기에서 `free`를 호출한다.
+
+![ida-dllattach-dlldetach](/images/post-06/ida-dllattach-dlldetach.png)
+
+위 사진에서 형광펜 칠해진 곳을 위주로 보면 [rbp+0E0h+var_20]의 값이 0이냐 1이냐에 따라 각기 다른 곳으로 분기 되는데
+분기 되는 두 곳에서 각각 malloc과 free 함수의 호출이 있는 것으로 보아 [rbp+0E0h+var_20]의 값이 0이면 DETACH로 분기되고 1이면 ATTACH로 분기되는 것을 확인할 수 있다.
+
+위 내용으로 알 수 있는 것은
+
+1. `DLL_PROCESS_DETACH`는 `fdwReason`로 `0`이 왔을 때의 값이다.
+2. `DLL_PROCESS_ATTACH`는 `fdwReason`로 `1`이 왔을 때의 값이다.
+
+또한 fdwReason의 값을 0 혹은 1인지만 확인하고 나머지의 경우는 return TRUE 부분으로 넘겨 버린다. 물론 switch문의 THREAD ATTACH/DETACH 부분의 코드를 추가 작성하면 
+2개의 분기가 더 생길 것이다.
+
+여담으로 내 컴퓨터는 64비트 환경이기 때문에 디스어셈블했을 때 주소가 0x10000000이 아닌 0x180000000번지대인 것을 확인할 수 있다. 또한 위 사진의 상단 부분을 확인해보면
+DllMain 함수는 __fastcall 함수 규약을 이용한다는 것도 확인 가능하다.
+***
+## 패킹된 DLL의 DllMain() 찾기
+
+위는 패킹이 안된 DLL로 DllMain()을 찾는 것은 매우 쉬웠다. 그러나 패킹이 된 DLL에서 DllMain()을 찾는 것은 순전히 리버서의 능력이다.
+
+찾는 방식 중 유용한 방식으로 두 가지가 있다.
+
+### 1. OPCODE 패턴
+개발자는 DllMain() 내부에서 switch 문을 분명 사용할 것이므로 JUMP문과 그 전의 `옵코드`를 모아서 검색하는 방식이다. 패킹을 해도 분명히 사용해야 되는 부분의 옵코드의 `패턴`은
+사용될 것이기 때문이다.
+
+### 2. DisableThreadLibraryCalls로 찾기
+
+`DisableThreadLibraryCalls()`은 `DLL_THREAD_DETACH / DLL_THREAD_ATTACH`와 연관된 `API`이다. DLL_THREAD_DETACH / DLL_THREAD_ATTACH는 스레드가 생성되거나 종료될 때 한번씩 호출된다.
+
+사용 중인 DLL 내부에 스레드가 매우 많거나 경우에 따라 생성/소멸을 반복한다면 시스템 내부에서 계속 DllMain()을 호출 할 것이고 프로세스 부하가 올 수 있다.
+
+그래서 마이크로소프트에서 제공하는 API 중 스레드가 생성/소멸 되더라도 `DllMain()`을 호출하지 않도록 하는 것이 있는데 그것이 `DisableThreadLibraryCalls()`이다.
+
+대부분 DisableThreadLibraryCalls()는 DLL_THREAD_ATTACH에 넣는 편이고 그 외에는 거의 사용되지 않는다. DisableThreadLibraryCalls()을 호출하는 곳을 찾으면 그곳이 DllMain()일 확률이 높다.
+***
