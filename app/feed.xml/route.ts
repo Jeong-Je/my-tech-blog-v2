@@ -24,7 +24,7 @@ export async function GET() {
     feed.item({
       title: post.title,
       description: post.description,
-      url: `${URL}/posts/${post.url}`,
+      url: `${URL}/${post.url}`,
       date: post.date,
     });
   });
