@@ -1,0 +1,64 @@
+---
+title: "[리버싱 - 7] : KeyGen 풀이 - ①"
+date: 2024-07-04
+tags:
+- REVERSING
+description:  F-secure Level 1 문제 풀이 기록
+---
+
+F-secure Level 1 문제이다. 레벨 1이다 보니 굉장히 쉽다.
+
+![main](/images/post-10/main.png)
+초기 화면이다. Key를 입력하고 올바른 Key면 success 틀리면 fail이다.
+
+아무 문자열이나 입력하면 아래와 같이 fail 문구가 출력된다.
+![fail](/images/post-10/fail.png)
+레벨 1이다보니 패킹 등도 안되어 있어서 바로 IDA로 열어보자.
+![graph](/images/post-10/graph.png)
+처음부터 그래프로 보면 한 눈에 보인다. `jnz`의 결과로 Fail과 Success 두 분기중 하나로 나뉜다.
+![logic](/images/post-10/logic.png)
+빨간 네모 박스가 핵심 로직으로 문자열 비교 부분이다.
+
+strcmp는 많이 봤지만 `stricmp`는 처음봐서 구글에 검색해보니
+대소문자 구별 없이 두 문자열을 비교하는 함수이며 두 문자열이 같으면 `0`을 리턴하고 다를 경우
+두 문자열의 대소를 비교하여 0보다 크거나 작은 값을 리턴한다.
+
+핵심은 두 문자열이 같은 경우 `0`을 리턴한다는 것이다.
+
+```
+call    ds:_stricmp
+add     esp, 3Ch
+test    eax, eax
+jnz     short loc_690010F3
+```
+`stricmp`를 호출하고 `add esp, 3Ch`로 사용한 스택 부분을 보정하고
+`test` 명령어로 `eax`와 `eax`를 `AND` 연산을 실행한다.
+
+두 문자열이 같은 경우 `stricmp`에서 0을 리턴하므로 `eax`에 `0`이 들어 있을 것이다.
+
+사용자로부터 문자열을 입력 받으므로 `scanf` 함수를 사용하고 scanf 호출을 하는 부분을 보면 인자로 String1을 받으므로
+사용자의 문자열은 String1에 들어가고 정답 문자열은 String2에 들어있을 것이다.
+
+사실상 이 문제는 `x32dbg`로 `stricmp`부분에 브레이크를 걸면 내가 입력한 String1과 정답 String2가 바로 보이므로 간단하게 끝낼 수 있다.
+![x32dbg](/images/post-10/x32dbg.png)
+x32dbg의 stack부분을 보면 내가 입력한 문자열은 esp에 들어가고 esp+4 부분에 정답 문자열인 `Asm07REC`가 나온다.
+
+그런데 IDA에서 보면 Asm07REC 문자열이 한눈에 보이지는 않는다. 어디서 Asm07REC이 나왔을까 궁금했다.
+![movsx](/images/post-10/movsx.png)
+형광펜과 빨간 글씨로 Asm07REC을 추출하는 부분을 표기했다.
+
+이 문제는 콘솔 창 첫 줄에 출력되는 "Assembly 2007 Reverse-Engineering Challenge - Level 1" 문자열에서 
+한글자 한글자를 따와서 정답 Key를 만드는 구조였다.
+```
+movsx   ecx, byte ptr Format+22h
+```
+Format(콘솔 첫 줄 문자열)에서 22h만큼 떨어진 위치에서 한 바이트를 가져와 ecx에 넣는 명령어이다.
+
+22h를 10진수로 바꾸면 34이므로 "Assembly 2007 Reverse-Engineering Challenge - Level 1"에서 34번째 문자는 C라는 것을 알 수 있고
+나머지 movsx 부분도 이런 식으로 한 문자씩 따온다.
+
+`push`로 한 문자씩 `스택`에 넣고 다 넣으면 `sprintf`함수로 문자열을 생성하고 그 문자열은 위에서 봤듯이 Asm07REC이다.
+
+![success](/images/post-10/success.png)
+레벨 2 문제는 위 콘솔창에 나오는 이메일로 이메일을 보내면 링크를 준다는데 이제는 안준다(무려 2007년 문제이다...)
+***
