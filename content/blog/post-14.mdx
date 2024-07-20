@@ -1,0 +1,48 @@
+---
+title: "[리버싱] : KeyGen 풀이 - DreamHack Wargame Level1"
+date: 2024-07-20
+tags:
+- REVERSING
+description:  Dreamhack Level1 rev-basic-3 문제 풀이 기록
+---
+
+키젠 프로그램 다운로드는 [여기](https://dreamhack.io/wargame/challenges/17) (출처 드림핵)
+
+[드림핵](https://dreamhack.io/)에서 무료 리버싱 강의 마지막에 나오는 레벨1 키젠 문제 풀이 기록
+
+레벨 1이라 쉽다.
+
+![execute](/images/post-14/execute.png)
+프로그램을 실행하면 Key 입력을 받고 틀리면 Wrong 맞으면 Correct를 출력한다.
+
+![main](/images/post-14/main.png)
+메인문이고 `sub_140001000`이 문자열 비교 함수이다. 이 함수의 리턴값에 따라 성공과 실패 분기로 나뉜다.
+
+![for](/images/post-14/for.png)
+문자열 비교 함수에서 핵심 부분들을 주석으로 적었다.
+
+IDA의 핵심 기능인 디컴파일을 하면 한 눈에 보기 쉽도록
+만들어 주지만 입문자인 나는 스택 프레임도 복습할 겸 하나하나 적어봤다.
+
+`140003000`에 미리 정해진 배열이 있는데 해당 부분으로 이동해서 `Shift + E`를 누르면 다음과 같이 쉽게 볼 수 있도록 익스포트 해준다.
+![data](/images/post-14/data.png)
+
+문자열 비교의 핵심 식을 정리하면 다음과 같은 식이 나온다.
+
+```
+배열[i] == i ^ 사용자 입력 문자열[i] + 2 * i
+```
+
+24번 계산해야 된다. 처음 두 번은 직접 계산했지만 계속할 자신이 없었다.
+
+익숙한 자바스크립트를 이용해서 계산했다.
+
+![javascript](/images/post-14/javascript.png)
+
+브라우저 개발자 도구에서 바로 코딩할 수 있는 자바스크립트가 역시 편하다
+
+결론적으로 키 값은 `I_am_X0_xo_Xor_eXcit1ng`이였다.
+
+![correct](/images/post-14/correct.png)
+
+***
