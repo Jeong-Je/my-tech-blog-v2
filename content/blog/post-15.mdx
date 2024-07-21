@@ -1,0 +1,66 @@
+---
+title: "[리버싱] : NtQuerySystemInformation()를 활용한 Anti-Debug"
+date: 2024-07-21
+tags:
+- REVERSING
+description:  NtQuerySystemInformation을 안티 디버깅에 활용하는 방법
+---
+
+`NtQuerySystemInformation`는 Windows 운영체제에서 시스템 정보에 대한 다양한 데이터를 가져오는 데 사용되는 API이다.
+
+[MSDN](https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation)에서 확인한 함수의 원형은 다음과 같다.
+
+```cpp
+__kernel_entry NTSTATUS NtQuerySystemInformation(
+  [in]            SYSTEM_INFORMATION_CLASS SystemInformationClass,
+  [in, out]       PVOID                    SystemInformation,
+  [in]            ULONG                    SystemInformationLength,
+  [out, optional] PULONG                   ReturnLength
+);
+```
+
+파라미터에 대한 설명도 역시 [MSDN](https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation)에서 확인할 수 있는데 간단히 정리하면 다음과 같다.
+
+- `SYSTEM_INFORMATION_CLASS`: SYSTEM_INFORMATION_CLASS의 클래스 중 하나를 넣는다. 이는 반환 받고자 하는 시스템 정보의 종류에 따라 다르게 넣으면 된다.
+- `SystemInformation`: 정보를 저장할 버퍼의 포인터 SYSTEM_INFORMATION_CLASS의 인자를 보고 시스템의 정보의 크기와 구조체를 정하면 된다.
+- `SystemInformationLength`: SystemInformation의 크기(바이트)를 넣으면 된다.
+- `ReturnLength`: 실제 데이터의 크기를 지정 대부분 `NULL` 값을 넣는다.
+
+그렇다면 안티 디버깅을 위해서는 SYSTEM_INFORMATION_CLASS에 어떤 클래스를 넣으면 될까?
+
+전체 클래스는 [여기](https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntexapi/system_information_class.htm)에서 확인할 수 있는데 안티 디버깅에서는 Value 값이 `0x23`인 `SystemKernelDebuggerInformation`을 이용한다. 참고로 대다수의 클래스는 문서화되지 않았다고 한다.
+
+`SystemKernelDebuggerInformation`클래스는 두 개의 값을 가지고 있는데 `KernelDebuggerEnabled`와 `KernelDebuggerNotPresent`이다 두 개의 값은 각각 `al`과 `ah`에 반환된다. 즉, `ah`의 값이 `zero`라면 디버깅 상황 중인 거다.
+
+실사용은 아래 코드와 같이 이용할 수 있다.
+
+```cpp
+enum { SystemKernelDebuggerInformation = 0x23 };
+
+typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION { 
+    BOOLEAN DebuggerEnabled; 
+    BOOLEAN DebuggerNotPresent; 
+} SYSTEM_KERNEL_DEBUGGER_INFORMATION, *PSYSTEM_KERNEL_DEBUGGER_INFORMATION; 
+
+bool Check()
+{
+    NTSTATUS status;
+    SYSTEM_KERNEL_DEBUGGER_INFORMATION SystemInfo;
+    
+    status = NtQuerySystemInformation(
+        (SYSTEM_INFORMATION_CLASS)SystemKernelDebuggerInformation,
+        &SystemInfo,
+        sizeof(SystemInfo),
+        NULL);
+
+    return SUCCEEDED(status)
+        ? (SystemInfo.DebuggerEnabled && !SystemInfo.DebuggerNotPresent)
+        : false;
+}
+```
+
+Check 함수의 리턴 값이 TRUE라면 디버깅 상황으로 판단하고 프로그램을 강제 종료하던지 특정 작업을 하여 안티 디버깅에 활용할 수 있다.
+
+API 방식이라 API 후킹으로 우회가 가능하다.
+
+***
