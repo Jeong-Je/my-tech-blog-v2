@@ -54,7 +54,7 @@ export default async function PostPage({ params }: PostProps) {
     <>
     <ScrollIndicator />
     <article className="prose dark:prose-invert mx-auto max-sm:mx-5">
-      <h1 className="mb-2">{post.title}</h1>
+      <h1 className="mb-2 break-all">{post.title}</h1>
       {post.description && (
         <p className="text-xl mt-0 text-slate-700 dark:text-slate-200">
           {post.description}
