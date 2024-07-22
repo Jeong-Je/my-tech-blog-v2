@@ -1,0 +1,41 @@
+---
+title: "[리버싱] : PE Structure에서 Section Header 정리"
+date: 2024-07-22
+tags:
+- REVERSING
+description:  패킹 공부하기 전에 PE의 Section Header 부분 복습겸 정리
+---
+패킹을 공부하기 전에 PE Format에서 Section Headers 부분 다시 복습겸 정리
+![PE-Structure](/images/post-16/PE-Structure.png)
+<cite>https://tech-zealots.com/malware-analysis/pe-portable-executable-structure-malware-analysis-part-2/</cite>
+
+PE Format에서 `Section Headers` 부분이 있다. 일반적으로 다음과 같은 섹션이 존재한다.
+
+- **.text**: 실행 코드가 포함된 섹션으로 실제 코딩한 코드가 이 부분에 들어있다.
+- **.data**: 초기화된 변수(전역 변수, 정적 변수)가 위치한다. 참고로 지역 변수는 스택에 할당된다.
+- **.bss**: 초기화되지 않은 변수가 이 곳에 위치한다.
+- **.rdata**: Read-Only Data로 읽기 전용 데이터가 위치한다.
+- **.idata**: IAT와 관련된 정보가 위치한다.
+- **.edata**: EAT와 관련된 정보가 위치한다.
+- **.rsrc**: 리소스가 위치한다 예를 들어 아이콘, 커서 등이 있다.
+
+아래는 실제 C코드에서 변수들의 섹션 위치를 정리
+```c
+#include <stdio.h>
+
+int global_var = 10;  // .data 섹션에 위치
+int uninitialized_global_var;  // .bss 섹션에 위치
+
+static int static_var = 5;  // .data 섹션에 위치
+static int uninitialized_static_var;  // .bss 섹션에 위치
+
+const int number = 20; // .rdata 섹션에 위치
+
+int main(){
+    printf("Hello World!\n"); // "Hello World!\n" 문자열 리터럴이 .rdata 섹션에 위치
+    int local_var = 1; // 스택에 위치
+    return 0;
+}
+```
+
+***
