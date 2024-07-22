@@ -77,7 +77,7 @@ export default function Nav() {
                 onClick={() => setHamburger(false)}
                 className="py-4 cursor-pointer"
               >
-                <Link href="/">Blog</Link>
+                <Link href="/blog">Blog</Link>
               </li>
               <li
                 onClick={() => setHamburger(false)}
