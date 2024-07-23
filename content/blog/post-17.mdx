@@ -1,0 +1,79 @@
+---
+title: "[리버싱] : 시간차 동적 계산 RDTSC 방식과 우회법"
+date: 2024-07-23
+tags:
+- REVERSING
+description:  시간 간격을 이용한 안티 디버깅 (RDTSC)과 우회법 정리
+---
+## RDTSC를 이용한 안티 디버깅
+시간을 측정하여 디버깅을 탐지하는 방식은 여러가지가 있다. 예를 들어 `GetTickCount`, `timeGetTime` 그리고 `QueryPerformanceCounter`등이 있지만 Win32 API가 아닌 `rdtsc`가 상대적으로 강력하다.
+
+`rdtsc`는 사실 시간을 측정한다기보다는 컴퓨터가 켜진 이후의 CPU 사이클 수를 반환한다.
+
+그래서 `rdtsc`를 두 번 사용하여 그 두 사이클 수 차이를 이용해서 디버거를 감지하는 방식이다.
+
+정상적인 실행에서는 두 사이클 수의 차이가 크지 않지만 디버깅 상황에서는 두 사이클 수의 차이가 매우 커지는 점을 이용하는 것이다. 
+
+리버서가 F8과 F9를 이용해 코드를 트레이싱하는 상황에서는 감지할 수 있지만 브레이크 포인트를 잡고 쭉 실행하는 경우 그리고 그 중단점이 rdtsc 측정 부분 밖일 경우는 디버거를 감지하지 못하므로
+단독으로 쓰기 보다는 부가적으로 쓰는 편이 좋을 거 같다.
+
+아래는 rdtsc를 이용한 디버거 감지 예시 코드이다.
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <intrin.h>
+
+int main() {
+	unsigned __int64 stamp1;
+	unsigned __int64 stamp2;
+
+	stamp1 = __rdtsc();
+	stamp2 = __rdtsc();
+
+	if (stamp2- stamp1 > 500000) {
+		printf("※ 디버거 감지됨...\n");
+	}
+	else {
+		printf("정상적인 실행중...\n");
+	}
+	printf("%I64d ticks\n", stamp2 - stamp1);
+	system("pause");
+	return 0;
+}
+```
+
+정상적으로 프로그램을 실행할때는 다음과 같이 디버거 감지를 하지 않는다.
+![not_debugging](/images/post-17/not_debugging.png)
+클록의 차이도 24이다. 여러 번 시도한 결과 클록의 차이는 20~26으로 위 코드에서 디버거로 감지하기 위한 최소한의 숫자 500000에는 근접하지 못한다.
+
+다음은 IDA로 디버깅 중인 상황에서의 결과이다.
+![debugging](/images/post-17/debugging.png)
+클록 수의 차이가 무시무시하게 나왔다. 무려 67억이다. (참고로 F9를 그냥 꾹 눌렀을 뿐이다.) 이런식으로 `rdtsc`는 디버깅 상황에서는 클록의 차이가 비정상적으로 크다는 점을 이용해서 디버거를 감지한다.
+
+***
+## RDTSC 우회법
+`rdtsc`, 난 처음 봤을 때 매우 흥미로운 방식이라고 생각했지만 사실 구식 방식이고 우회법도 널리 알려졌다.
+
+### 우회법 ①
+아주 단순한 생각으로는 F8과 F9를 이용한 코드 트레이싱을 두 개의 rdtsc 측정 사이에서는 하지말고 계속 실행을 이용하고 다음과 같이 두 개의 rdtsc 측정 안에서는 중단점을 안 잡으면 된다.
+![bypass1](/images/post-17/bypass1.png)
+
+그런데 이런 단순한 방식은 또 단순한 방식으로 안 통할 수 있다. 예를 들어 두 rdtsc 측정을 메인 코드 맨 앞과 맨 뒤에 배치하면 어떻게 될까 
+
+당연히 메인 코드 안에서 코드 트레이싱을 한 번이라도 하는 순간 그리고 중단점을 한 번이라도 잡으면 위 우회법은 무용지물이다.
+
+### 우회법 ②
+
+`IDT(Interrupt Descriptor Table) 후킹` 방식을 이용하면 된다. 커널 후킹과 관련되어 난이도가 좀 있다.
+
+간단히 요약하면 `rdtsc` 자체가 시스템 부팅 이후의 CPU 사이클 수를 반환하는데 CPU에서 사용하는 `CR4(Control Register)` 레지스터 안에 있는
+`TSD(Time Stamp Disable)`의 비트를 1로 설정한다. 
+
+이러면 `rdtsc`가 호출될 때마다 `GP(General Protection)`이라는 예외처리가 발생하는데 뒤 따라오는 예외 핸들러인 `GPF(General Protection Fault)`가 호출되고
+이 GPF는 인터럽트 `0xD`에 해당한다.
+
+즉, rdtsc가 호출되면 int 0xD번이 호출된다. 따라서 IDT 0xD를 후킹해서 모니터링 하다가 인터럽트가 발생하면 그것이 rdtsc에 의해 발생한 것인지 확인하고 맞다면
+사이클 값을 조작하여 우회할 수 있다.
+
+좀 복잡하지만 OllyDBG의 OllyAdvanced에서 Anti-RDTSC를 켜놓으면 위 작업이 간단히 가능하다.
+***
