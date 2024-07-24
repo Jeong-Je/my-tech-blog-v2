@@ -9,6 +9,8 @@ export default function BlogPage({ searchParams }: { searchParams: any }) {
   let allPostsData = allBlogs.sort((a, b) =>
     compareDesc(new Date(a.date), new Date(b.date))
   );
+  
+  const allPostCount = allPostsData.length;
 
   if (searchParams.tag) {
     allPostsData = allPostsData.filter((p) =>
@@ -17,6 +19,13 @@ export default function BlogPage({ searchParams }: { searchParams: any }) {
   }
 
   const postCount = allPostsData.length;
+
+
+  // 각 태그의 게시글 수 체크
+  const tagsWithCount = tags.map(tag => {
+    const count = allBlogs.filter(post => post.tags?.includes(tag.name)).length;
+    return { ...tag, count };
+  });
 
   /* 페이지 네이션 */
   const pagination = Math.ceil(allPostsData.length / POSTS_PER_PAGE);
@@ -40,23 +49,23 @@ export default function BlogPage({ searchParams }: { searchParams: any }) {
           <h3
             className={`font-bold ${searchParams.tag ? "" : "text-pink-500"}`}
           >
-            <Link href="/blog">ALL POSTS</Link>
+            <Link href="/blog">ALL POSTS ({allPostCount})</Link>
           </h3>
           <div className="px-3">
-            {tags.map((tag, idx) => (
+            {tagsWithCount.map((tag, idx) => (
               <>
                 <li
                   key={idx}
                   className={`uppercase list-none py-2 ${
-                    tag === searchParams?.tag ? "text-pink-500" : ""
+                    tag.name === searchParams?.tag ? "text-pink-500" : ""
                   }`}
                 >
                   <Link
                     href={
-                      tag === "C++" ? "/blog?tag=C%2B%2B" : `/blog?tag=${tag}`
+                      tag.name === "C++" ? "/blog?tag=C%2B%2B" : `/blog?tag=${tag.name}`
                     }
                   >
-                    {tag}
+                    {tag.name} ({tag.count})
                   </Link>
                 </li>
               </>
