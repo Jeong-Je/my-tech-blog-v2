@@ -5,6 +5,6 @@ interface Tag {
 
 export const tags: Array<Tag> = [
     { name: "OS", count: 0 },
-    { name: "C++", count: 0 },
+    { name: "C-Family", count: 0 },
     { name: "REVERSING", count: 0 },
 ]

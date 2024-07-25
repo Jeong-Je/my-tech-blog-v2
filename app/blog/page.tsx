@@ -62,7 +62,7 @@ export default function BlogPage({ searchParams }: { searchParams: any }) {
                 >
                   <Link
                     href={
-                      tag.name === "C++" ? "/blog?tag=C%2B%2B" : `/blog?tag=${tag.name}`
+                      `/blog?tag=${tag.name}`
                     }
                   >
                     {tag.name} ({tag.count})
