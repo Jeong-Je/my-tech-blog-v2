@@ -1,0 +1,60 @@
+---
+title: "코드 후킹을 위한 DLL Injector 만들기 (GUI)"
+date: 2024-07-26
+tags:
+- REVERSING
+- C-Family
+description: C# WPF와 C++/CLI로 DLL 인젝터를 GUI로 구현해 보기
+---
+
+[이전글](https://jeongje.vercel.app/blog/post-18)에서 DLL 인젝터를 CUI 환경으로 만들었는데 CUI 환경 프로그램은 일단 사용하기 불편하고 멋이 없다.
+
+이번엔 **C# WPF**를 이용해서 GUI로 DLL 인젝터를 만들었는데 C# WPF는 GUI를 만들기는 매우 효과적이지만 내부 로직도 C#으로 구현할 경우 단점이 있다. 일단 **C++** 에 비해 성능이 떨어지고 디컴파일이 쉬워진다.
+
+그래서 외부 껍데기(**UI**)는 `C# WPF`를 이용하고 **내부 로직**은 `C++/CLI` 를 통해 **DLL** 형태로 돌아가게 만들었다.
+
+우선 WPF의 `XAML`를 이용해서 기본 UI 틀을 만들어 준다.
+![main_form](/images/post-19/main_form.png)
+
+그리고 xaml.cs에서 Browse...버튼을 누르면 파일 탐색기가 열려서 DLL 파일을 선택할 수 있게 해준다.
+```cs
+private void BrowseButton_Click(object sender, RoutedEventArgs e)
+{
+    OpenFileDialog openFileDialog = new OpenFileDialog();
+    openFileDialog.Filter = "DLL files (*.dll)|*.dll|All files (*.*)|*.*";
+    if (openFileDialog.ShowDialog() == true)
+    {
+        HookDllTextBox.Text = openFileDialog.FileName;
+    }
+}
+```
+![input](/images/post-19/input.png)
+
+그리고 DLL 주입하기 버튼을 누르면 C++ 로직이 실행되도록 C++ DLL을 만들어 준다. [이전글](https://jeongje.vercel.app/blog/post-18)에서 사용한 C++코드와 99% 일치하므로
+바뀐 부분만 정리하겠다. 
+
+우선 C#에서 C++ 클래스를 이용할 때 인자를 **string**형태로 넘겨주므로 **Char**형태로 변환이 우선 필요했다.
+```cpp
+pin_ptr<const wchar_t> wProcessName = PtrToStringChars(processName);
+pin_ptr<const wchar_t> wDllPath = PtrToStringChars(dllPath);
+```
+
+그리고 타켓 EXE를 찾을 때 딜레이 없는 무한루프를 걸면 성능 이슈가 있을 수 있어 사용했던 **Sleep**도 **C++/CLI** 문법에 맞게 변경이 필요했다.
+```cpp
+while ((dwPID = GetPIDByName(wProcessName)) == 0)
+{
+    System::Threading::Thread::Sleep(1000); // 1초 대기 후 다시 시도
+}
+```
+나머지 인젝션 로직은 **CUI**에서 코드와 거의 똑같으므로 그대로 사용하면 된다. 그리고 빌드하여 DLL 파일을 만들어주고 이 DLL을 C# WPF에서 사용하면 된다.
+***
+타켓 EXE와 후킹할 DLL을 넣어주고 DLL 주입 버튼을 누르면 타켓 EXE의 실행을 대기한다.
+![waiting](/images/post-19/waiting.png)
+
+타켓 프로세스를 감지했다면 바로 DLL 주입을 시도한다.
+![success](/images/post-19/success.png)
+
+DLL 주입이 성공했다는 메세지박스가 출력되면 **프로세스 탐색기**로 DLL 주입이 정상적으로 되었는지 확인할 수 있다.
+![process_explorer](/images/post-19/process_explorer.png)
+
+***
