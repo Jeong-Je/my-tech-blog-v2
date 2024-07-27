@@ -1,5 +1,5 @@
 ---
-title: "내가 만든 DLL Injector로 실제 코드 후킹 해보기"
+title: "내가 만든 DLL Injector로 실제 API 후킹 해보기"
 date: 2024-07-27
 tags:
 - REVERSING
@@ -7,7 +7,7 @@ tags:
 description: ws2_32.dll의 WSASend 함수를 후킹하여 패킷 로그 남기기
 ---
 
-[이전글](https://jeongje.vercel.app/blog/post-19)에서 GUI 기반 DLL Injector를 구현해 봤다. 이번엔 후킹에 사용될 DLL을 수정하여 실제로 코드 후킹을 해 보았다.
+[이전글](https://jeongje.vercel.app/blog/post-19)에서 GUI 기반 DLL Injector를 구현해 봤다. 이번엔 후킹에 사용될 DLL을 수정하여 실제로 API 후킹을 해 보았다.
 ## 시행착오
 내가 후킹할 **API**는 `ws2_32.dll`의 `send`함수였다. 
 
@@ -21,7 +21,7 @@ description: ws2_32.dll의 WSASend 함수를 후킹하여 패킷 로그 남기�
 
 어제 거의 하루종일 시도했지만 **실패**했다. DLL 주입은 성공적으로 되었지만 채팅을 보낼 때 **OutputDebugString**을 호출을 안한다...
 
-근데 또 이상한게 클라이언트 프로그램 말고 서버 프로그램에 DLL 인젝션을 하면 코드 후킹이 정상적으로 되어 **OutputDebugString**을 호출을 정상적으로 한다.
+근데 또 이상한게 클라이언트 프로그램 말고 서버 프로그램에 DLL 인젝션을 하면 API 후킹이 정상적으로 되어 **OutputDebugString**을 호출을 정상적으로 한다.
 ***
 ## 해결법
 결국 정답은 스택오버플로우에서 찾았다. 서버 프로그램에서 채팅을 클라이언트로 보낼때는 `GetStream().Write` 함수를 사용했다. 이 함수는 **ws2_32.dll**의 **send**함수를 사용하는 것이 맞다. 그래서 서버 프로세스에 DLL 인젝션을 하면 후킹이 잘 됐었다.
@@ -30,7 +30,7 @@ description: ws2_32.dll의 WSASend 함수를 후킹하여 패킷 로그 남기�
 
 ***
 ## naked는 64비트에서 불가
-처음에 시도한 후킹법은 `GetProcAddress()`를 이용하여 `WSASend`함수 주소를 찾은 다음
+처음에 시도한 후킹법은 코드 후킹으로 `GetProcAddress()`를 이용하여 `WSASend`함수 주소를 찾은 다음
 
 디버거로 적당한 **jmp**문을 정하고 해당 점프문을 내가 원하는 함수로 점프하는 점프문으로 덮어 씌우려고 했다.
 
@@ -55,6 +55,6 @@ MinHook을 이용해서 후킹에 사용될 DLL을 만들었다. 전체 코드�
 다음으로 채팅 클라이언트에서 채팅을 보내면 내부적으로 `WSASend` 함수를 사용하기 전에 **OutputDebugString**를 호출할 것이다.
 ![chat](/images/post-20/chat.png)
 
-**DebugView**에서 OutputDebugString를 호출한 흔적을 확인할 수 있었다. 이로써 DLL 인젝션을 이용한 코드 후킹에 성공했다!
+**DebugView**에서 OutputDebugString를 호출한 흔적을 확인할 수 있었다. 이로써 DLL 인젝션을 이용한 API 후킹에 성공했다!
 ![debugView](/images/post-20/debugView.png)
 ***
