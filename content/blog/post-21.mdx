@@ -1,0 +1,44 @@
+---
+title: "[Reversing.kr] Easy Keygen"
+date: 2024-08-13
+tags:
+- REVERSING
+description: Reversing.kr의 Easy Keygen 문제풀이
+---
+[Reversing.kr](http://reversing.kr/challenge.php)의 Easy Keygen 문제인데 제목에서 알 수 있듯이 쉽다.
+
+문제 프로그램과 동봉되어 있는 ReadMe.txt에 아래와 같은 문장이 들어있다.
+```
+ReversingKr KeygenMe
+
+Find the Name when the Serial is 5B134977135E7D13
+```
+시리얼 값 **5B134977135E7D13**에 해당하는 **name**을 찾으면 된다.
+
+직접 바이너리를 보면 알 수 있지만 **name**을 구하는 법은 아래와 같다.
+```
+str[0] ^ 10 = 5B
+str[1] ^ 20 = 13
+str[2] ^ 30 = 49
+str[3] ^ 10 = 77
+str[4] ^ 20 = 13
+str[5] ^ 30 = 5E
+str[6] ^ 10 = 7D
+str[7] ^ 20 = 13
+```
+위의 str 배열의 값을 찾으려고 자바스크립트를 이용했다. 아래는 그 JS 코드
+```js
+const serial = [0x5B, 0x13, 0x49, 0x77, 0x13, 0x5E, 0x7D, 0x13];
+const op = [0x10, 0x20, 0x30];
+
+let name = [];
+
+for(let i = 0; i < 8; i++) {
+    let j = i % 3;
+    name += String.fromCharCode(serial[i] ^ op[j]);
+}
+
+console.log(name); //K3yg3nm3
+```
+정답은 `K3yg3nm3`이었다.
+***
