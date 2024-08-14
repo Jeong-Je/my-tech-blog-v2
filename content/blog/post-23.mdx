@@ -1,0 +1,62 @@
+---
+title: "[Reversing.kr] Replace"
+date: 2024-08-15
+tags:
+- REVERSING
+description: Reversing.kr의 Replace 문제풀이
+---
+
+[Reversing.kr](http://reversing.kr/challenge.php)의 **Replace**문제인데 상당히 재밌었다.
+
+![Wrong](/images/post-23/Wrong.png)
+
+처음 Input 값을 넣고 Check 버튼을 누르면 **0x40466F** 명령어에서 오류가 발생한다.
+
+`0x40466F`의 명령어는 다음과 같다.
+```
+0040466F    | C600 90   | mov byte ptr ds:[eax],90
+```
+
+**[eax]** 에 **90(NOP)** 을 넣는건데 오류가 발생한다. IDA에 뜬 오류를 보면 다음과 같다.
+
+> The instruction at 0x40466F referenced memory at 0x6017E6BE. The memory could not be written.
+
+**0x40466F**에는 **0x6017E6BE**이 들어있는데 이곳은 수정이 불가능하다는 것이다.
+
+---
+
+여기까지 확인하고 IDA의 그래프를 보니깐 딱 보니 아래 빨간 박스 부분으로 들어가야되는데 들어가는 선이 보이지 않는다.
+![graph](/images/post-23/graph.png)
+어떻게 저 구간으로 들어가라는 것인가.
+***
+사용자의 입력 값을 가져오는 **GetDlgItemInt**에 아래와 같이 중단점을 걸고 한줄씩 트레이싱 해보면 먼저 **[4084D0]** 에 내가 넣은 Input 값을 16진수로 넣는다.
+
+![bp](/images/post-23/bp.png)
+**[4084D0]** 를 **INC**하는 부분이 몇 번 나온다. 그리고 아래로 더 내려가면
+![inc](/images/post-23/inc.png)
+
+아래와 같은 부분이 나오는데 **[4084D0] += 0x601605C7** 하는 부분이다.
+![404674](/images/post-23/404674.png)
+그리고 계속 트레이싱하면 
+![4046A9](/images/post-23/4046A9.png)
+
+오류를 발생했던 부분이 나오는데 해당 함수에 중단점을 걸고 [eax] 값을 확인하면
+```
+[eax] = (input 값 + 4 + 0x601605C7)
+```
+라는 사실을 알 수 있다.
+
+**40466F**의 명령어는 **[eax]** 의 값을 **90(NOP)** 으로 바꾸는 역할이다. 우리는 정답을 위해서  **0x401073**으로 가야되는데 
+**0x401071**에 있는 **JMP**문으로 인해 **0x401073**으로 못갔다. 
+
+즉,
+
+정답은 **0x40466F**의 명령어를 이용해서 **0x401071**과 **0x401072**의 두 부분을 `NOP`으로 만들고 **0x401073(Correct 부분)** 으로 들어가는 것이다.
+
+따라서 **0x401071 = input 값 + 4 + 0x601605C7**에 해당하는 input 값의 10진수 표현이 정답이고 
+
+그 값은 계산기를 돌리면 쉽게 나오는데 `2687109798`이다.
+
+![correct](/images/post-23/correct.png)
+
+***
