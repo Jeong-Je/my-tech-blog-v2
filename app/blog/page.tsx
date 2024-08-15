@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { compareDesc, format, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { allBlogs } from "contentlayer/generated";
 import { tags } from "@/content/tags";
 
 const POSTS_PER_PAGE = 5;
 
 export default function BlogPage({ searchParams }: { searchParams: any }) {
-  let allPostsData = allBlogs.sort((a, b) =>
-    compareDesc(new Date(a.date), new Date(b.date))
+  let allPostsData = allBlogs.sort((a, b) => // 게시글들 정렬
+    a.slug.toLowerCase() > b.slug.toLowerCase() ? - 1 : 1
   );
-  
+
   const allPostCount = allPostsData.length;
 
   if (searchParams.tag) {
