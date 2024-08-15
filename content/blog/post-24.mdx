@@ -1,0 +1,180 @@
+---
+title: "[Reversing.kr] Position"
+date: 2024-08-16
+tags:
+- REVERSING
+description: Reversing.kr의 Position 문제풀이
+---
+
+[Reversing.kr](http://reversing.kr/challenge.php)의 **Position** 문제인데
+프로그램을 시작하자 **mfcu100.dll** 오류가 발생했다. 해당 오류는 [이 블로그](https://nalnal.tistory.com/entry/mfc100udll-%EB%8B%A4%EC%9A%B4-%EB%B0%8F-%EC%98%A4%EB%A5%98-%EB%AC%B8%EC%A0%9C-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95-%ED%8C%8C%EC%9D%BC-%EB%8B%A4%EC%9A%B4%EB%A1%9C%EB%93%9C)에서 해결했다.
+
+오류를 해결한 후의 프로그램 화면과 ReadMe는 아래와 같은데 전에 풀었던 [Easy Keygen](https://jeongje.vercel.app/blog/post-21) 문제와 유사하지만 난이도는 꽤 올라갔다.
+![position](/images/post-24/position.png)
+시리얼 값이 **76876-77776**일때의 이름을 찾으면 된다.
+```
+ReversingKr KeygenMe
+
+Find the Name when the Serial is 76876-77776
+This problem has several answers.
+
+Password is ***p
+```
+마지막 줄에서 알 수 있듯이 정답의 끝 문자는 **p**라고 한다.
+***
+**IDA**의 그래프를 보면 **sub_401740** 함수의 결과에 따라 성공과 실패로 나뉘는 것을 확인할 수 있다.
+![branch](/images/post-24/branch.png)
+
+**sub_401740** 함수에서 가장 먼저 등장하는 의미있는 부분은 **name**의 길이 체크이다.
+![sizeIs4](/images/post-24/sizeIs4.png)
+위는 **name**의 길이가 `4`인지 확인하는 부분이고 4가 아닐 경우 실패 분기로 넘어간다.
+
+그 다음 의미있는 부분은 **name**의 문자들이 알파벳 소문자로 이루어져 있는지 확인하는 부분이다.
+![a2z](/images/post-24/a2z.png)
+**name**의 길이가 4이므로 **4번**의 반복을 하면서 문자들이 알파벳 소문자인지 확인한다.
+
+그리고 나오는 의미있는 부분은 이제 **시리얼** 값 검증이다.
+
+우선 **시리얼**의 길이가 `11`인지를 확인하고 **5번째** 문자가 `-` 인지 확인한다.
+![serialLength](/images/post-24/serialLength.png)
+
+여기까지는 어셈블리만 보고 충분히 의도를 파악할 수 있었다. 이제부터 등장하는 로직은 **IDA**의 **디컴파일** 기능이 있어야 정말 편하다.
+
+디컴파일된 소스도 꽤 긴데 이걸 어셈블리만 보고 파악하기는 정말 고될 거 같다.
+
+아래는 디컴파일된 소스의 일부분이다. (전체 소스는 사진 한 장에 안 담긴다.)
+![decompile](/images/post-24/decompile.png)
+위에 처럼 코드 한줄 한줄 주석을 달면 의도를 충분히 파악할 수 있다.
+
+중간중간 등장하는 **mfc100u** 관련 함수를 정리하면 다음과 같다. 참고로 내 감이여서 정확하지는 않다. 근데 맞는 거 같다.
+- **mfc100u_7006** : name 이나 serial의 문자 길이를 구하는 함수
+- **mfc100u_4478** : 인덱스를 함수 인자로 줘서 name 이나 serial에서 인덱스에 해당하는 문자 하나 반환
+- **mfc100u_4511** : `itow_s`함수에서 사용될 버퍼 만들기
+- **mfc100u_11494** : 위 함수로 만든 버퍼 비우기(?)
+
+디컴파일된 소스를 하나하나 적으면 아래와 같은 결론이 나온다.
+```py
+v6 = name[0]
+v40 = (v6 & 1) + 5;
+v48 = ((v6 & 0x10) != 0) + 5;
+v42 = ((v6 & 2) != 0) + 5;
+v44 = ((v6 & 4) != 0) + 5;
+v46 = ((v6 & 8) != 0) + 5;
+
+v7 = name[1]
+v32 = (v7 & 1) + 1;
+v38 = ((v7 & 0x10) != 0) + 1;
+v34 = ((v7 & 2) != 0) + 1;
+v8 = ((v7 & 4) != 0) + 1;
+v36 = ((v7 & 8) != 0) + 1;
+
+v19 = name[2]
+v41 = (v19 & 1) + 5;
+v49 = ((v19 & 0x10) != 0) + 5;
+v43 = ((v19 & 2) != 0) + 5;
+v45 = ((v19 & 4) != 0) + 5;
+v47 = ((v19 & 8) != 0) + 5;
+
+v20 = name[3]
+v33 = (v20 & 1) + 1;
+v39 = ((v20 & 0x10) != 0) + 1;
+v35 = ((v20 & 2) != 0) + 1;
+v21 = ((v20 & 4) != 0) + 1;
+v37 = ((v20 & 8) != 0) + 1;
+
+---------serial 앞부분---------
+serial[0] = v40 + v8
+serial[1] = v46 + v36
+serial[2] = v42 + v38
+serial[3] = v44 + v32
+serial[4] = v48 + v34
+--------------------------------
+serial[5] = '-'
+---------serial 뒷부분---------
+serial[6] = v41 + v21
+serial[7] = v47 + v37
+serial[8] = v43 + v39
+serial[9] = v45 + v33
+serial[10] = v49 + v35
+```
+**name[0]** 과 **name[1]** 로 **시리얼** **앞**부분을 만들고, **name[2]** 과 **name[3]** 로 **시리얼** **뒷**부분을 만든다. 
+
+저기에 맞는 **name**을 찾으면 되는데 이때 쓰는 방식이 `브루트 포스(brute force)`이다. 흔히 **무차별 대입**으로 조합 가능한 모든 값을 다 넣어서 답을 구하는 것이다.
+
+아래는 **Brute force**의 **C++** 소스이다.
+```cpp
+#include <iostream>
+
+using namespace std;
+int main() {
+    const string serial = "76876-77776";
+
+    for (int v6 = 0x61; v6 <= 0x7A; ++v6) {
+        for (int v7 = 0x61; v7 <= 0x7A; ++v7) {
+            for (int v19 = 0x61; v19 <= 0x7A; ++v19) {
+                for (int v20 = 0x61; v20 <= 0x7A; ++v20) {
+                    int v40 = (v6 & 1) + 5;
+                    int v48 = ((v6 & 0x10) != 0) + 5;
+                    int v42 = ((v6 & 2) != 0) + 5;
+                    int v44 = ((v6 & 4) != 0) + 5;
+                    int v46 = ((v6 & 8) != 0) + 5;
+
+                    int v32 = (v7 & 1) + 1;
+                    int v38 = ((v7 & 0x10) != 0) + 1;
+                    int v34 = ((v7 & 2) != 0) + 1;
+                    int v8 = ((v7 & 4) != 0) + 1;
+                    int v36 = ((v7 & 8) != 0) + 1;
+
+                    int v41 = (v19 & 1) + 5;
+                    int v49 = ((v19 & 0x10) != 0) + 5;
+                    int v43 = ((v19 & 2) != 0) + 5;
+                    int v45 = ((v19 & 4) != 0) + 5;
+                    int v47 = ((v19 & 8) != 0) + 5;
+
+                    int v33 = (v20 & 1) + 1;
+                    int v39 = ((v20 & 0x10) != 0) + 1;
+                    int v35 = ((v20 & 2) != 0) + 1;
+                    int v21 = ((v20 & 4) != 0) + 1;
+                    int v37 = ((v20 & 8) != 0) + 1;
+                    
+                    if ((serial[0] - '0') == v40 + v8 &&
+                        (serial[1] - '0') == v46 + v36 &&
+                        (serial[2] - '0') == v42 + v38 &&
+                        (serial[3] - '0') == v44 + v32 &&
+                        (serial[4] - '0') == v48 + v34 &&
+                        (serial[6] - '0') == v41 + v21 &&
+                        (serial[7] - '0') == v47 + v37 &&
+                        (serial[8] - '0') == v43 + v39 &&
+                        (serial[9] - '0') == v45 + v33 &&
+                        (serial[10] - '0') == v49 + v35 &&
+                        static_cast<char>(v20) == 'p') {
+                        cout << static_cast<char>(v6) 
+                                  << static_cast<char>(v7) 
+                                  << static_cast<char>(v19) 
+                                  << static_cast<char>(v20) 
+                                  << "\n";
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+```
+
+위 코드를 돌리면 총 4가지의 답이 나온다.
+```
+bump
+cqmp
+ftmp
+gpmp
+```
+
+위 4가지 중 [Reversing.kr](http://reversing.kr/challenge.php)에서인정하는 **Flag**는 `bump` 하나이다.
+
+![correct](/images/post-24/correct.png)
+
+
+어렵지는 않았지만 좀 귀찮은게 많았던 문제이었다.
+
+***
