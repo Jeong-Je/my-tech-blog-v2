@@ -1,0 +1,91 @@
+---
+title: "[Reversing.kr] Ransomware"
+date: 2024-08-16
+tags:
+- REVERSING
+description: Reversing.kr의 Ransomware 문제풀이
+---
+
+[Reversing.kr](http://reversing.kr/challenge.php)의 **Ransomware**문제인데 제목에서 알 수 있듯이 파일 암호화와 복호화 문제이다.
+
+파일은 총 3개이다.
+![files](/images/post-26/files.png)
+**run.exe**를 실행하여 정확한 **Key** 값을 넣으면 **file**이 복구된다. **readme**에는 복호화된 파일의 형식이 **EXE** 라는 힌트를 주는데 중요한 힌트이다.
+
+![exeinfoPE](/images/post-26/exeinfoPE.png)
+기본적으로 **run.exe**는 `upx` 패킹이 되어 있는 것을 **EexinfoPE**를 통해서 확인 가능하다.
+
+![upx_unpack](/images/post-26/upx_unpack.png)
+위에 처럼 `upx` **언패킹**을 먼저하고 진행했다. upx의 언패킹은 너무 쉬워서 파일 용량 감소말고는 안티 리버싱에는 딱히 도움이 안된다.
+
+바이너리 보면 처음에 파일 오픈해서 가져오는 부분이 있는데 아마도 복호화될 파일을 가져오는 부분일 것이다.
+
+그리고 아래로 진행하다 보면 아래와 같은 부분이 나오는데 복호화될 파일을 **[5415B8]** 에 복사하는 부분이다.
+
+아래 반복문을 모두 마치고 **[5415B8]** 의 Hex값과 **HxD**로 오픈한 **file**의 Hex값이 모두 일치하는 것을 확인할 수 있다.
+![5415B8](/images/post-26/5415B8.png)
+
+그리고 아래로 계속 진행하다보면 이제 진짜 암호화 부분이 등장한다.
+![encryption](/images/post-26/encryption.png)
+위의 주석을 조금 잘못 작성했는데 
+```
+5415B8[i] = key[i] ^ 5415B8[i] // 잘못된 부분
+↓↓↓↓ 수정 ↓↓↓↓
+5415B8[i] = key[j] ^ 5415B8[i] // 인덱스 번호가 서로 같이 따라가지 않음
+```
+
+위 로직을 간단히 정리하면 아래와 같다. 
+```
+5415B8[i] ^= key[j]
+5415B8[i] ^= 0xFF
+```
+이게 파일을 암호화하는 방식이였다. 
+
+즉,
+
+그렇다면 복호화는 암호화의 반대로 가면 된다.
+```
+5415B8[i] ^= 0xFF
+5415B8[i] ^= key[j]
+```
+위의 로직을 따라가면 되는데 아직 `Key`를 모른다. 여기서 처음 **readme**에 적힌 힌트를 이용하는데 복호화될 파일의 확장자는 **EXE**이다.
+
+**HxD**로 아무 **EXE** 파일을 열어보면 **MZ 스트링(4D 5A)** 이 나온다. 즉 초반부는 저 형태를 따라가야 정상적인 **EXE** 파일이 된다.
+![exe_hxd](/images/post-26/exe_hxd.png)
+
+즉, Key를 구하는 로직은 아래처럼 간단해진다.
+```
+5415B8[i] ^= 0xFF
+5415B8[i] ^= EXE_HEX[i]
+```
+
+**HxD**로 정상적인 EXE와 암호화된 FILE의 Hex 값을 조금씩 떼어서 가져왔다.
+```
+EXE
+"0x4D", "0x5A", "0x90", "0x00", "0x03", "0x00", "0x00", "0x00", "0x04", "0x00", "0x00", "0x00", "0xFF", "0xFF", "0x00", "0x00"
+
+암호화된 FILE
+"0xDE", "0xC0", "0x1B", "0x8C", "0x8C", "0x93", "0x9E", "0x86", "0x98", "0x97", "0x9A", "0x8C", "0x73", "0x6C", "0x9A", "0x8B"
+```
+
+복호화를 위해 암호화된 FILE의 Hex값에 각각 **0xFF**를 `XOR` 연산 해준다.
+```
+암호화된 FILE ^= 0xFF
+"0x21", "0x3f", "0xe4", "0x73", "0x73", "0x6c", "0x61", "0x79", "0x67", "0x68", "0x65", "0x73", "0x8c", "0x93", "0x65", "0x74"
+```
+
+그리고 마지막으로 **5415B8[i] ^= EXE_HEX[i]** 연산을 해주면 키 값이 나온다.
+```
+암호화된 FILE ^= EXE
+letsplaychessletspla
+```
+
+**Key**는 `letsplaychess`인데 이걸로 FILE를 복호화해주고 확장자를 **exe**로 바꾸고 실행하면 아래와 같은 오류가 나온다.
+![msvcr100d.dll](/images/post-26/msvcr100d.dll.png)
+MSVCR100D.dll를 설치하라고 하는데 설치하기 귀찮다...
+
+그냥 이 파일를 바로 **IDA**로 열고 문자열 탐색하면 **Key**가 보인다. 이 파일자체도 **UPX**패킹이 됐다는 사실도 알 수 있다.
+![clear](/images/post-26/clear.png)
+
+**Flag**가 'Colle Systemf'로 확인하고 넣으니 실패! 뒤에 f를 빼고 넣으니 성공이다.
+***
