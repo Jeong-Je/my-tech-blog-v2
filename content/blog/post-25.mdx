@@ -1,0 +1,51 @@
+---
+title: "[Reversing.kr] Direct3D FPS"
+date: 2024-08-16
+tags:
+- REVERSING
+description: Reversing.kr의 Direct3D FPS 문제풀이
+---
+[Reversing.kr](http://reversing.kr/challenge.php)의 **Direct3D FPS**문제인데 공부가 많이 된 문제이다.
+
+![ingame](/images/post-25/ingame.png)
+우선 게임을 실행한 화면은 위와 같은데 총을 들고 몬스터들을 죽일 수 있다. 근데 정말 잘 안죽는다. 거의 30~50대 때려야 죽는 거 같다.
+
+![game_clear_logic](/images/post-25/game_clear_logic.png)
+![first_msgbox_text_hex](/images/post-25/first_msgbox_text_hex.png)
+위의 로직이 게임 클리어 로직인데. 메세지 박스를 띄울 때 Caption은 잘 보이지만 Text 영역이 해석 되지 않는다.
+
+게임을 클리어하기 위해서는
+몬스터를 다 죽여야 될 거 같은데 정상적으로 모두 죽이기는 시간이 너~무 오래 걸릴 거 같다.
+
+그래서 먼저 데미지핵을 만들어야 될 거 같았다. 총을 쏘면 총소리가 출력되는데 여기 근처에 데미지와 관련된 부분이 있다.
+![shoot.wav](/images/post-25/shoot.wav.png)
+위 코드는 총소리를 출력하는 코드이다. 여기를 중심으로 코드를 위아래 잘 훑어보면 총 데미지 코드를 찾을 수 있다.
+![gun_damage](/images/post-25/gun_damage.png)
+위 코드가 총 데미지인데 한 대당 몬스터의 HP를 2씩 깎는다. 위 코드를 아래 처럼 패치하여 2가 아닌 100씩 깎도록 만든다.
+![gun_damage_patch](/images/post-25/gun_damage_patch.png)
+
+데미지 패치를 하면 이제 몬스터는 한대 맞고 바로 죽는다.
+![monster_clear](/images/post-25/monster_clear.png)
+몬스터를 전부 제거한 모습이다. 그런데 게임 클리어 문구가 뜨지 않는다. 게임 클리어 메세지 박스의 Text 부분의 Hex 영역을 보면
+이전과 다르게 Text의 문구들이 많이 복호화된 상태를 확인할 수 있었다.
+![msgbox_text_hex](/images/post-25/msgbox_text_hex.png)
+
+여기서 상태 레지스터를 조정하여 강제적으로 메세지 박스를 띄우면 아래와 같은데 **Flag**의 마지막 두 문자가 아직 덜 복호화됐다.
+![half_success](/images/post-25/half_success.png)
+
+그래서 몬스터를 한마리 죽이고 Hex창 보고를 반복하니 몬스터가 죽을때 마다 복호화가 한 단계씩 진행된다는 것을 알았다.
+![monster_die](/images/post-25/monster_die.png)
+위의 코드가 몬스터가 죽을때 Flag 값을 복호화하는 부분이다.
+
+몬스터를 모두 처리했을 때 복호화 과정이 대부분 진행되고 마지막 두 문자가 복호화 안됐다.
+```
+Flag[i] = Flag[i] ^ byte_409184[0x210 * i]
+```
+그래서 위 수식 속 i 값에 마지막 두 문자에 해당하는 **48**과 **49**를 넣어서 정리해보니
+```
+48 번째 문자 = F0 ^ C0 = 30 (0)
+49 번째 문자 = A9 ^ C4 = 6D (m)
+```
+라는 결론을 얻었다. 즉 Flag는 `Thr3EDPr0m`이었다.
+
+***
