@@ -1,0 +1,67 @@
+---
+title: "LoadLibraryA()와 GetProcAddress() 함수"
+date: 2024-08-28
+tags:
+- Win-API
+- REVERSING
+description: 패킹과 관련해서 LoadLibraryA()와 GetProcAddress() 기능 정리
+---
+
+패킹을 하면 패커는 **IAT**를 망가뜨리거나 아예 사용하지 않아 해당 프로그램이 어떤 **API**를 사용하는지 분석하기 어렵다.
+
+따라서 패킹된 이후에는 ***IAT***에 나오는 ***API*** 리스트 수가 굉장히 줄어든다.
+
+![packed_iat](/images/post-31/packed_iat.png)
+
+위 사진은 패킹이된 프로그램의 IAT를 본 모습인데 내부에서 사용하는 API가 모두 사라지고 딱 두 개만 남았다.
+
+남은 두 개의 **API**는 **LoadLibraryA()** 와 **GetProcAddress()** 함수이다. 두 함수는 무엇이길래 IAT에 여전히 남아있는 것일까
+
+IAT에 API 리스트가 나오지 않더라도 내부에서 API를 사용한다면 대표적으로 저 두 함수를 이용해서 API를 이용한다.
+
+**LoadLibraryA** → **GetProcAddress** 순서를 통해 직접 동적으로 얻어온다.
+
+## LoadLibraryA()
+이 함수의 목적은 모듈에 대한 핸들을 얻어오는 것이다.
+```cpp
+HMODULE LoadLibraryA(
+  [in] LPCSTR lpLibFileName
+);
+```
+위는 **LoadLibraryA()** 의 함수 원형이다. 매개 변수로는 모듈(DLL의 주소)이 들어간다. 함수가 성공하면 반환 값으로 해당 모듈에 대한 핸들을 반환한다.
+
+## GetProcAddress()
+이 함수의 목적은 DLL 내부에서 함수의 주소를 가져오는 것이다.
+```cpp
+FARPROC GetProcAddress(
+  [in] HMODULE hModule,
+  [in] LPCSTR  lpProcName
+);
+```
+다음은 **GetProcAddress()** 의 원형인데 매개 변수로 2개를 받는다. 
+
+- **hModule** : LoadLibraryA로 반환받은 모듈을 넣는다. 
+
+- **lpProcName** : 모듈 안에서 찾고 싶은 함수의 이름을 넣는다. 
+
+이 함수가 성공하면 함수의 주소를 반환 받는다. 이 주소를 이용해서 쓰고자 하는 API를 이용한다.
+
+## Example
+
+간단한 예제를 보면 다음과 같다.
+
+예를 들어 **example.dll**에 **add**라는 함수가 있다고 가정하고 이 함수를 사용하는 C코드는 다음과 같다.
+```c
+// DLL 파일 경로
+const char* dllPath = "example.dll";
+
+// DLL을 로드
+HMODULE hDll = LoadLibraryA(dllPath);
+
+// 함수의 주소를 가져오기
+AddFunc Add = (AddFunc)GetProcAddress(hDll, "Add");
+
+// 함수 호출
+int result = Add(5, 3);
+```
+***
