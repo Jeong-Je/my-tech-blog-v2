@@ -1,0 +1,66 @@
+---
+title: "Windows x64 calling convention"
+date: 2024-08-28
+tags:
+- REVERSING
+- OS
+description: 윈도우 32비트와 64비트의 함수 호출 규약 차이점
+---
+
+**함수 호출 규약**은 [예전 포스트](https://jeongje.vercel.app/blog/post-05)에서 한 번 다룬 적이 있다. 근데 그때는 **x86** 기반의 내용이었다.
+
+64비트의 보급이 대중화되고 대다수의 소프트웨어가 64비트 환경에서 개발되는 지금 64비트의 함수 호출 규약도 따로 공부해둘 필요가 있다고 생각했다.
+
+## 32비트 함수 호출 규약
+
+**32비트**에서는 대표적으로 3개의 규약이 있었다. <small>(물론 C++ 클래스를 위한 **__thiscall**도 있다.)</small>
+
+- **__cdel** : 함수를 호출하는 쪽에서 스택을 보정한다.
+- **__stdcall** : 함수가 호출되는 쪽에서 스택을 보정한다.
+- **__fastcall** : __stdcall과 방식은 같지만 파라미터가 **2개** 이하일 경우 레지스터를 이용한다.
+
+## 64비트 함수 호출 규약
+
+**64비트**에서는 `__fastcall`만 사용한다. 그런데 파라미터 개수에 따른 레지스터 사용을 기존 2개에서 **4개**로 확장되었다.
+
+[MSDN](https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170)에 나오는 테이블을 보면 아래와 같은데
+![msdn](/images/post-30/msdn.png)
+4번째 파라미터까지는 레지스터를 이용하고 그 이후의 파라미터는 스택에 넣는다. **부동 소수점** 파라미터는 ***XMM*** 레지스터를 이용하고 흔히 사용될 **정수**는
+***RCX***, ***RDX***, ***R8***, ***R9*** 순서로 사용한다.
+
+[MSDN](https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170)에 나오는 ***C++*** 예제를 보면 더 쉽게 이해가 된다.
+```cpp
+func1(int a, int b, int c, int d, int e, int f);
+// a in RCX, b in RDX, c in R8, d in R9, f then e pushed on stack
+```
+
+```cpp
+func2(float a, double b, float c, double d, float e, float f);
+// a in XMM0, b in XMM1, c in XMM2, d in XMM3, f then e pushed on stack
+```
+
+이해는 다 되었지만 실제로도 이렇게 동작하는지 내 눈으로 직접 확인하고 싶었다.
+
+```cpp
+#include <iostream>
+
+int sum(int a, int b, int c, int d, int e);
+
+int main() {
+	int result = sum(1, 2, 3, 4, 5);
+	std::cout << "sum = " << result;
+	return 0;
+}
+
+int sum(int a, int b, int c, int d, int e) {
+	return a + b + c + d + e;
+}
+```
+
+sum 함수는 파라미터 5개 받은 후 모두 더해서 반환하는 함수이다. 위 코드를 빌드한 후 나오는 exe를 IDA로 올려보았다.
+
+![ida](/images/post-30/ida.png)
+
+1부터 4까지는 레지스터를 이용하고 5는 스택에 넣는 것을 확인했다. 
+
+***
