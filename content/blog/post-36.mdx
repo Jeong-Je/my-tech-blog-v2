@@ -1,0 +1,104 @@
+---
+title: "[VirtualBox] 외부 네트워크에서 SSH로 CentOS 접속하기"
+date: 2024-11-08
+tags:
+- Linux
+description: 외부 네트워크에서 SSH로 CentOS 접속하는 세팅법
+---
+
+학교 과제가 **CentOS** 환경에서 해야 돼서 집에 있는 **윈도우**에 **VirtualBox**로 CentOS를 설치해서 하고 있는데
+
+밖에서도 `ssh`로 접속해서 과제를 하고 싶어서 ssh를 세팅했는데 처음하는 거라서 약간 헤매서 정리 !
+
+***
+해야되는 큰 틀은 다음 4가지이다.
+1. VirtualBox 속 CentOS에서 ssh 설정
+2. VirtualBox 네트워크 설정
+3. 윈도우 방화벽 설정
+4. 공유기 포트 포워딩 설정
+
+## VirtualBox 속 CentOS에서 ssh 설정
+
+### sshd 설치
+
+```
+which sshd
+```
+
+위 명령어로 sshd가 설치되어 있는지 확인할 수 있다. 경로가 잘 출력된다면 설치가 된 상태이다.
+
+설치가 안되어 있어서 새로 설치한다면 아래 명령어로 설치가 가능하다.
+```
+sudo yum install -y openssh-server
+```
+### /etc/selinux/config 수정
+
+`vi /etc/selinux/config`로 **SELINUX=enforcing** 의 값을 `disabled`로 변경 해준다.
+
+### sshd 활성화 및 상태 확인
+
+```
+systemctl enable sshd
+systemctl status sshd
+```
+
+처음 명령어는 sshd를 실행 두번째 명령어는 sshd 상태이다.
+
+Active 칸에 active (running)으로 초록색 불이 들어와야 정상적이다.
+
+### 방화벽 설정
+
+방화벽에 `ssh` 서비스를 허용
+```
+sudo firewall-cmd --permanent --add-service=ssh
+```
+
+리로드하여 설정 적용
+```
+sudo firewall-cmd --reload
+```
+
+## VirtualBox 네트워크 설정
+**VirtualBox**로 돌아와서 CentOS 설정에서 네트워크 > 어댑터 1을 `NAT`으로 설정 후
+![virtualbox_network](/images/post-36/virtualbox_network.png)
+
+밑에 고급에서 포트 포워딩을 설정한다. 
+
+호스트 포트에 외부에서 접속할 포트 번호를 입력하고 게스트 포트는 CentOS 속 SSH 포트를 입력한다.
+
+SSH 포트는 기본 포트가 **22**라서 그냥 두고 외부에서 접속할 포트를 정해야 되는데 중복 되지 않도록 큰 수를 택하는 것이 좋다. (나는 32132 포트를 선택했다.)
+![virtualbox_port](/images/post-36/virtualbox_port.png)
+
+## 윈도우 방화벽 설정
+그리고 결국 외부에서 접속하는 것이 윈도우를 먼저 거치고 VirtualBox 속 CentOS에 접속하는 것이므로 윈도우의 방화벽도 설정해야 된다.
+
+**Windows Defender 방화벽**에서 **고급 설정**을 눌러서 **인바인드 규칙**을 새로 만들어 준다.
+
+여기서 포트를 선택하고 다음을 눌러서 특정 포트를 입력해준다. 나의 경우 32132번 포트를 이용한다. 그리고 기본값으로 다음을 계속 누르고 마지막 이름 설정을 나는 ssh로 설정했다. 
+
+그러면 다음과 같이 규칙이 새로 생긴다.
+![window_defender](/images/post-36/window_defender.png)
+
+만약 컴퓨터가 공유기를 사용하지 않는다면 여기까지가 끝인데 나는 공유기를 이용하므로
+
+공유기 포트 포워딩도 설정해야된다.
+
+## 공유기 포트 포워딩 설정
+
+나는 netis 공유기를 이용하는데 관리자 설정을 위해서 [192.168.1.1](http://192.168.1.1/)에 접속했다.
+
+로그인을 한 후 포트 포워딩 탭에서 32132번 포트를 열어주면 된다.
+![netis](/images/post-36/netis.png)
+
+여기까지가 설정인데 포트 포워딩이 제대로 이루어 졌는지 테스트는 [여기](https://www.yougetsignal.com/tools/open-ports/) 사이트에서 테스트할 수 있다.
+
+이제 외부 네트워크에서 아래 명령어로 원격 접속할 수 있다. 당연히 호스트 IP는 호스트 PC의 공인IP를 입력해야 된다.
+
+공인 IP는 [ipip.kr](https://ipip.kr/)에서 확인할 수 있다.
+
+> ssh [계정]@[호스트 IP] -p [포트]
+
+![ssh](/images/post-36/ssh.png)
+
+이제 밖에서도 과제할 수 있다 !
+***
