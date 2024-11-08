@@ -9,5 +9,6 @@ export const tags: Array<Tag> = [
     { name: "REVERSING", count: 0 },
     { name: "Win-API", count: 0},
     { name: "algorithm", count: 0},
-    { name: "cryptosystem", count: 0}
+    { name: "cryptosystem", count: 0},
+    { name: 'etc', count: 0},
 ]
