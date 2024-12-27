@@ -47,11 +47,6 @@ module.exports = {
             img: {
               margin: "auto",
             },
-            li: {
-              "&::marker": {
-                color: '#fcd34d',
-              }
-            }
           },
         },
       },
