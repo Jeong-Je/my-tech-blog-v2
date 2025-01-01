@@ -12,4 +12,5 @@ export const tags: Array<Tag> = [
     { name: "cryptosystem", count: 0},
     { name: 'etc', count: 0},
     { name: 'Linux', count: 0},
+    { name: '서버 프로그래밍', count: 0},
 ]
