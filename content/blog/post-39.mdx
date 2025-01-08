@@ -1,0 +1,198 @@
+---
+title: "[서버-2] C++에서 스레드와 뮤텍스 실습"
+date: 2025-01-08
+tags:
+- 서버 프로그래밍
+description: 소수 구하기 C++코드에서 스레드와 뮤텍스
+---
+## 싱글스레드 소수 구하기 코드
+아래와 같이 소수를 구하는 C++ 코드가 있다.
+```cpp
+#include <vector>
+#include <iostream>
+#include <chrono>
+
+using namespace std;
+const int MaxCount = 300000;
+
+bool IsPrimeNumber(int number)
+{
+    if (number == 1)
+        return false;
+    if (number == 2 || number == 3)
+        return true;
+    for (int i = 2; i < number - 1; i++)
+    {
+        if ((number % i) == 0)
+            return false;
+    }
+    return true;
+}
+
+void PrintNumbers(const vector<int>& primes)
+{
+    for (int v : primes)
+    {
+        cout << v << endl;
+    }
+}
+
+int main()
+{
+    vector<int> primes;
+
+    auto t0 = chrono::system_clock::now();
+
+    for (int i = 1; i <= MaxCount; i++)
+    {
+        if (IsPrimeNumber(i))
+        {
+            primes.push_back(i);
+        }
+    }
+    auto t1 = chrono::system_clock::now();
+    auto duration = chrono::duration_cast<chrono::milliseconds>(t1 - t0).count();
+
+    PrintNumbers(primes);
+
+    cout << "Took " << duration << " milliseconds." << endl;
+
+    return 0;
+}
+```
+
+실행 결과는 아래처럼 소수와 소수를 구하는 시간이 출력이 된다.
+```
+···
+299941
+299951
+299969
+299977
+299983
+299993
+Took 4603 milliseconds.
+```
+
+위 코드는 30만 이하의 소수를 구하는데(출력은 시간에 포함x) 약 4.6초가 걸렸다. 숫자가 커지면 시간이 더욱 오래 걸릴 것이다. 속도 향상을 위해서 스레드를 이용할 수 있다.
+## 멀티스레드 소수 구하기 코드
+```cpp
+···
+int main() {
+    // 각 스레드는 여기서 값을 꺼내 온다.
+    int num = 1;
+    recursive_mutex num_mutex;
+
+    vector<int> primes;
+    recursive_mutex primes_mutex;
+
+    auto t0 = chrono::system_clock::now();
+
+    // 작동할 워커 스레드
+    vector<shared_ptr<thread>> threads;
+
+    for (int i = 0; i < ThreadCount; i++) {
+        shared_ptr<thread> thread1(new thread([&]() {
+            // 각 스레드의 메인 함수
+            // 값을 가져올 수 있으면 루프를 돈다.
+            while (true) {
+                int n;
+                {
+                    lock_guard<recursive_mutex> num_lock(num_mutex);
+                    n = num;
+                    num++;
+                }
+
+                if (n >= MaxCount) break;
+
+                if (IsPrimeNumber(n)) {
+                    lock_guard<recursive_mutex> primes_lock(primes_mutex);
+                    primes.push_back(n);
+                }
+            }
+            }));
+
+        // 스레드 객체를 일단 갖고 있는다.
+        threads.push_back(thread1);
+    }
+
+    // 모든 스레드가 일을 마칠 때까지 기다린다.
+    for (auto thread : threads) {
+        thread->join();
+    }
+
+    // 끝
+    auto t1 = chrono::system_clock::now();
+
+    auto duration = chrono::duration_cast<chrono::milliseconds>(t1 - t0).count();
+
+    PrintNumbers(primes);
+
+    cout << "Took " << duration << " milliseconds." << endl;
+
+    return 0;
+}
+```
+
+```
+···
+299941
+299951
+299969
+299977
+299983
+299993
+Took 1154 milliseconds.
+```
+
+4개의 스레드를 이용하여 대략 속도가 4배 빨라졌다.
+
+`num`과 `primes` 변수 두 개는 여러 스레드에서 접근할 수 있으므로 `동시성 제어`가 필요하다. 그래서 두 변수에 대한 뮤텍스용 객체 `mutex`를 아래와 같이 선언해준다.
+```cpp
+int num = 1;
+recursive_mutex num_mutex;
+
+vector<int> primes;
+recursive_mutex primes_mutex;
+```
+
+C++에서 뮤텍스 사용 방식은 아래와 같다.
+1. `std::recursive_mutex`나 `std::mutex`를 생성한다.
+2. 보호가 필요한 변수 사용 전에 `lock()` 함수로 잠근다.
+3. 다 쓰고 나면 `unlock()` 함수로 잠금을 푼다.
+
+`lock_guard`를 사용하면 `unlock`을 자동으로 처리해준다. **unlock**을 하는 시점은 **lock_guard** 변수가 소멸되는 시점이다. 
+
+그래서 아래와 같이 `중괄호({})`로 보호가 필요한 영역을 감싸준다. **중괄호**가 없다면 **recursive_mutex**는 메인 함수가 끝나는 시점에 소멸되므로 싱글스레드와 다를 것이 없다 (정확히는 싱글스레드보다 못하다.).
+```cpp
+int n;
+{
+    lock_guard<recursive_mutex> num_lock(num_mutex);
+    n = num;
+    num++;
+}
+```
+
+여러 스레드가 동시에 `num`을 읽고 num을 증가시킨다. num을 증가시키는 연산은 기계어로 아래와 같이 나온다.
+```
+Register1 = num
+Register1 = Register1 + 1
+num = Register1
+```
+
+**num**을 보호해야되는 이유는 쉽게 납득이 가능한데 왜 primes 변수도 보호가 필요할까
+
+num이라는 변수를 관리하는데 필요한 것은 정수형 4바이트 데이터 공간 하나뿐이다. 하지만 `vector<int> primes` 정보를 관리하는 데 필요한 데이터는 하나 이상이다.
+
+우선 `vector<int>`를 가르키는 `포인터 변수`와 배열의 크기를 멤버 변수로 가질 것이다.
+
+각 스레드는 소수를 찾으면 `push_back` 함수를 통해서 vector 뒤에 새로운 소수를 붙인다. 그러나 더 이상 공간이 없으면, 메모리를 재할당한다.
+
+메모리를 재할당한 후 메모리를 가르키는 주소가 달라질 수 있다. 이런 경우 스레드 함수에서 이미 반환이 끝난 메모리 주소에 접근할 수 있다. 
+
+primes 변수를 보호 안 해주면 위와 같은 이유로 컴파일 조차 안되고 충돌이 날 것이다. 
+
+따라서 primes 변수도 뮤텍스로 보호가 필요하다. 
+
+## 참고
+[게임 서버 프로그래밍 교과서](https://search.shopping.naver.com/book/catalog/32442140250?cat_id=50010862&frm=PBOKPRO&query=%EA%B2%8C%EC%9E%84+%EC%84%9C%EB%B2%84+%ED%94%84%EB%A1%9C%EA%B7%B8%EB%9E%98%EB%B0%8D+%EA%B5%90%EA%B3%BC%EC%84%9C&NaPm=ct%3Dm5nogqww%7Cci%3D1cf092fa920a21f64a79fb798377b3dc4ecec93a%7Ctr%3Dboknx%7Csn%3D95694%7Chk%3De62cf94c9a272827ba1e28bb4acf80929b18ae57)
+***
