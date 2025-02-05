@@ -1,0 +1,85 @@
+---
+title: "[서버-4] 시리얼 병목(Serial Bottleneck) 현상과 암달의 법칙"
+date: 2025-02-04
+tags:
+- 서버 프로그래밍
+description: 최적화를 위해서 시리얼 병목과 암달의 법칙 이해하기
+---
+## Serial Bottleneck
+**뮤텍스**가 보호하는 영역이 너무 넓으면 스레드가 여러 개 있어도 하나일 때와 별반 차이가 없다. 여러 **CPU**가 각 스레드의 연산을 나누어서 실행하여 동시 처리량을 높인다면 `병렬성(parallelism)`이 높다고 한다.
+
+허나 어떠한 이유로 이 **병렬성**이 제대로 나오지 않는다면 즉, 멀티스레드이지만 정작 한 CPU만 일을 하는 현상을 `시리얼 병목(Serial Bottleneck)`이라고 한다.
+
+[지난 포스트](https://jeongje.vercel.app/blog/post-39)에서 구한 멀티 스레드 소수 구하는 프로그램 의사 코드는 아래와 같다.
+
+```
+①. num을 잠급니다.
+②. num에서 값을 하나 가져옵니다.
+③. num을 잠금 해제합니다.
+④. num이 소수인지 판별합니다.
+⑤. 소수면 primes를 잠급니다.
+⑥. primes에 소수를 넣습니다.
+⑦. primes를 잠금 해제합니다.
+```
+
+**①~③** 단계에서 잠금이 발생하고 다른 스레드가 이 구역을 실행하려고 하면 그 스레드는 일시 정지된다. **⑤~⑦** 에서도 같은 일이 발생한다.
+
+즉, 잠금 구역은 한 스레드만 접근이 가능하고 다른 스레드와 동시에 실행될 수 없다. 
+
+극단적인 경우 여러 CPU가 병렬 처리를 하더라도 아래 그림처럼 CPU 1개를 제외하고 나머지 CPU에는 노는 구간이 생길 수 있다.
+
+![Bottleneck](/images/post-41/bottleneck.jpg)
+<cite>게임 서버 프로그래밍 교과서 - 배현직 </cite>
+
+위와 같은 현상을 `시리얼 병목` 이라고 한다.
+
+## 암달의 법칙 (Amdahl's law)
+
+위 예시 사진은 CPU의 개수가 3개일 때이다. 만약 CPU 수가 늘어난다면 그만큼 빈 공간이 늘어날 것이다.
+
+![amdahl](/images/post-41/amdahl.jpg)
+<cite>게임 서버 프로그래밍 교과서 - 배현직 </cite>
+
+시리얼 병목이 존재하는 시간이 길어질 수록 총 처리량은 줄어들 수 밖에 없다.
+
+이처럼 시리얼 병목이 존재할 때 CPU 개수가 많을수록 총 처리 효율성이
+떨어지는 현상을 **암달의 법칙(암달의 저주)** 라고 한다. 
+
+암달의 저주를 줄이려면 시리얼 병목이 발생하는 구간을 최소로 줄여야 한다.이를 위해 우리는 아래와 같은 확장 프로그램의 도움을 받을 수 있다.
+
+## Concurrency Visualizer
+
+**Visual Studio**의 [Concurrency Visualizer](https://www.google.com/search?q=visual+studio+concurrency+visualizer) 확장프로그램을 이용하면 멀티스레드의 성능을 시각적으로 분석할 수 있다.
+
+소수 구하기 프로그램을 실행시킨 후 아래 처럼 **Concurrency Visualizer**을 해당 프로세스에 어태치 시킨다.
+
+![Attach](/images/post-41/Attach.png)
+
+수집은 오래 안해도 된다. 5초 정도만 대기 후에 바로 중지 시켜도 된다.
+
+![collecting](/images/post-41/collecting.png)
+
+아래 사진은 스레드 **4개**일 때의 결과 사진이다.
+
+![thread_4](/images/post-41/result_thread4.png)
+
+**99% Execution**이란 총 시간 중 99% 시간을 CPU 연산했다는 의미이다.
+
+이번엔 소수 구하기 코드를 조금 수정하여 txt 파일에 소수를 기록하도록 변경 하였다.
+
+![IO](/images/post-41/IO.png)
+
+총 시간 중 94%는 CPU 연산을, 5%는 파일 입출력에 사용 했다는 결과를 얻을 수 있었다.
+
+만약 **시리얼 병목**이 높은 프로그램이라면 빨간색의 `Synchronization`의 비중이 높을 것이다.
+
+## Oversubscription (초과 구독)
+
+`Oversubscription` 현상은 시스템의 논리 코어 개수보다 스레드가 더 많을 경우 발생하는 현상이다.
+
+![preemption](/images/post-41/preemption.png)
+
+스레드들이 CPU 선점에 시간을 쓰게 된다. (위 사진에서는 35%의 시간) 
+
+여기서 스레드의 수를 더 늘리면 **preemption** 비중이 더 높아질 것이다.
+***
