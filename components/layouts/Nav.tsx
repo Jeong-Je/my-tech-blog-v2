@@ -23,7 +23,7 @@ export default function Nav() {
   return (
     <>
       <nav
-        className={`max-w-5xl mx-auto flex items-center justify-between py-10`}
+        className={`max-w-5xl mx-auto flex items-center justify-between py-10 md:py-0`}
       >
         {/* 로고 */}
         <Link href="/" className="flex text-2xl font-semibold items-center">
@@ -41,7 +41,7 @@ export default function Nav() {
         <div className="hidden sm:flex space-x-4">
           <Link href="/blog">Blog</Link>
           <Link href="/category">Category</Link>
-          <Link href="/about">About</Link>
+          <Link href="/memo">Memo</Link>
           <button>
             <AiOutlineSearch size={25} />
           </button>
@@ -89,7 +89,7 @@ export default function Nav() {
                 onClick={() => setHamburger(false)}
                 className="py-4 cursor-pointer"
               >
-                <Link href="/about">About</Link>
+                <Link href="/memo">Memo</Link>
               </li>
             </ul>
           </div>
