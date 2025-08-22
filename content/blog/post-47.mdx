@@ -1,0 +1,31 @@
+---
+title: "[서버-9] Windows 서버 최고의 성능을 위한 IOCP 모델"
+date: 2025-08-22
+tags:
+- 서버 프로그래밍
+description: IOCP는 어떻게 고속으로 입/출력이 가능한가
+---
+
+`IOCP(I/O Completion Port)`는 1993년경에 등장한 모델이다. 등장한지 20년이 훌쩍 넘었지만 여전히 성능이 좋아서 아직도 서버쪽에서 많이 쓰인다. 
+
+IOCP가 고속 입·출력이 가능한 이유는 입·출력에 `OS`가 개입하기 때문이다. 입·출력을 프로세스가 한다는 생각은 과장해서 그야말로 착각이다.
+
+IOCP의 핵심은 입·출력을 운영체제에게 위임하고 완료되면 나한테 알려줘 이다. 
+
+IOCP는 [Overlapped 구조체](https://jeongje.vercel.app/blog/post-45)를 반드시 사용해야 된다. Overlapped I/O가 Windows에서만 가능하므로 IOCP 역시 Windows에서만 쓸 수 있다.
+리눅스 환경에서는 대안으로 `epoll`이 있다. 
+
+클라이언트의 요청을 `accept`를 한 후 해당 소켓 핸들을 IOCP에 연결한다. 운영체제는 해당 소켓을 지켜보다가 I/O가 완료되면 `IOCP Queue`에 넣는다. 사용자는 해당 큐에서 값을 꺼내서 소켓을 이용한다. 
+
+실제 개발 관점에서 IOCP를 다뤄보면 다음과 같다.
+
+먼저 IOCP Queue에서 소켓을 꺼내서 사용할 워커 스레드를 미리 생성한다.(스레드의 개수는 CPU 코어 수와 같을 수도 있고 아닐 수도 있다. 성능면에서 테스팅이 필요하다)
+
+해당 워커 스레드는 `GetQueuedCompletionStatus(GQCS)` 함수를 이용해서 IOCP Queue에서 소켓들을 꺼내와 작업한다.
+
+그리고 `CreateIoCompletionPort`함수로 IOCP를 생성하고 클라이언트 연결이 완료되면 해당 소켓 핸들을 `CreateIoCompletionPort`를 이용해서 IOCP에 연결해준다.
+
+즉 **CreateIoCompletionPort** 함수의 첫 호출은 IOCP 핸들을 생성하는 것이고 이후에 쓰일 때는 기존 생성된 IOCP와 소켓 핸들을 연결하는 역할을 한다.
+
+또한 IOCP는 커널영역에서 사용자 메모리 영역을 공유해서 불필요한 메모리 복사를 방지한다. 그래서 입·출력 처리시 관련 메모리에 대해 페이지 단위(보통 4KB) Lock/UnLock을 수행한다. 
+***
