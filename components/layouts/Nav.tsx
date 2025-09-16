@@ -41,7 +41,7 @@ export default function Nav() {
         <div className="hidden sm:flex space-x-4">
           <Link href="/blog">Blog</Link>
           <Link href="/category">Category</Link>
-          <Link href="/memo">Memo</Link>
+          <Link href="/profile">Profile</Link>
           <button>
             <AiOutlineSearch size={25} />
           </button>
@@ -89,7 +89,7 @@ export default function Nav() {
                 onClick={() => setHamburger(false)}
                 className="py-4 cursor-pointer"
               >
-                <Link href="/memo">Memo</Link>
+                <Link href="/profile">Profile</Link>
               </li>
             </ul>
           </div>
