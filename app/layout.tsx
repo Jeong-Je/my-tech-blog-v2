@@ -13,6 +13,9 @@ const space_grotesk = Space_Grotesk({
 export const metadata = {
   title: "Jeong Tech Blog 🔥",
   description: "공부한 내용을 정리하는 개인 블로그입니다.",
+  verification: {
+    google: "va2tnmoobqug2xkCOYK2wtpoJAt5LGymQzVIEfmUvo4",
+  },
 };
 
 interface RootLayoutProps {
