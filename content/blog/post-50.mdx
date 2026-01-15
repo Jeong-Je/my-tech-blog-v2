@@ -1,10 +1,12 @@
 ---
 title: "댕글링 포인터(Dangling Pointer)에 대해서"
-date: 2025-12-05
+date: 2026-01-15
 tags:
 - C-Family
 description: 댕글링 포인터와 C++에서의 예방법
 ---
+
+> 2025/12/05 포스팅을 수정한 글
 
 ## 댕글링 포인터란?
 `댕글링 포인터(Dangling Pointer)`는 이미 해제되었거나 더 이상 유효하지 않은 메모리를 가리키고 있는 `포인터`를 말한다.
@@ -129,4 +131,53 @@ int main()
 **shared_ptr**에서 서로가 서로를 가리키는 **shared_ptr** 포인터를 가리킨다면 `reference count`가 0이 되지 못하여 메모리가 해제되는 않는 `순환 참조(circular reference)`가 발생할 수 있다.
 
 이러한 경우 count 값은 증가 안 하도록 `weak_ptr`를 쓸 수 있다.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <memory>
+
+class PiggyBank {
+private:
+    std::string name;
+    int amount;
+
+public:
+    // 순환 참조의 문제를 파악하기 일부러 "다른 저금통의 주소"를 가질 수 있게 합니다.
+    std::shared_ptr<PiggyBank> bestFriend;
+
+    PiggyBank(std::string name, int initCoin) : name(name), amount(initCoin) {
+        std::cout << "[생성] " << name << " 저금통 탄생!\n";
+    }
+
+    ~PiggyBank() {
+        std::cout << "[소멸] " << name << " 저금통이 사라집니다! (청소 완료)\n";
+    }
+};
+
+int main() {
+
+    auto myPiggy = std::make_shared<PiggyBank>("상훈이", 1111); // myPiggy 카운트=1
+    auto yrPiggy = std::make_shared<PiggyBank>("예림이", 2222); // yrPiggy 카운트=1
+
+    myPiggy->bestFriend = yrPiggy; // yrPiggy의 카운트=2
+    yrPiggy->bestFriend = myPiggy; // myPiggy의 카운트=2
+
+    std::cout << "현재 myPiggy의 주인 수: " << myPiggy.use_count() << "명\n";
+    std::cout << "현재 yrPiggy의 주인 수: " << yrPiggy.use_count() << "명\n";
+
+    return 0;
+}
+```
+
+위 코드는 메인 함수가 종료되어도 
+```cpp
+myPiggy->bestFriend = yrPiggy; // yrPiggy의 카운트=2
+yrPiggy->bestFriend = myPiggy; // myPiggy의 카운트=2
+```
+위 코드의 순환 참조 문제에 의해서 소멸자가 호출되지 않는다. 이를 해결하기 위해서
+**PiggyBank** 클래스의 **bestFriend**의 타입을 아래처럼 `weak_ptr`로 수정하면 해결된다.
+```cpp
+std::weak_ptr<PiggyBank> bestFriend;
+```
 ***
