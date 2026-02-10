@@ -1,0 +1,103 @@
+---
+title: "STM32 MCU와 NUCLEO 보드에 대해서"
+date: 2026-02-10
+tags: 
+- Embedded
+description: STM32 NUCLEO-L073RZ를 중심으로 STM32 MCU와 개발보드 개념 정리
+---
+
+## STM32 MCU란?
+
+`STM32`는 **STMicroelectronics(ST)** 에서 개발·제공하는 **32비트 마이크로컨트롤러(MCU) 제품군**이다.
+CPU 코어로는 **ARM에서 설계한 Cortex-M 시리즈**를 사용하며, 하나의 칩 안에 다음 구성요소들이 모두 포함되어 있다.
+
+* CPU (ARM Cortex-M 계열)
+* Flash 메모리 (프로그램 저장)
+* SRAM (데이터 메모리)
+* GPIO
+* 타이머
+* 인터럽트 컨트롤러(NVIC)
+* 통신 주변장치(UART, SPI, I2C, USB 등)
+
+즉, STM32는 **단독으로 동작 가능한 완전한 마이크로컨트롤러 칩**이다.
+
+STM32는 용도에 따라 다양한 시리즈로 나뉜다.
+
+* **STM32L** : 저전력(Ultra Low Power)
+* **STM32F** : 범용(General Purpose)
+* **STM32G** : 최신 범용 / 고성능 대비 효율
+* **STM32H** : 고성능(High Performance)
+* **STM32WB** : 무선(BLE) 내장
+
+각 시리즈는 성능, 전력 소모, 주변장치 구성이 서로 다르다.
+
+---
+
+## NUCLEO 개발보드란?
+
+`NUCLEO`는 **STM32 MCU를 쉽게 개발·실습할 수 있도록 ST에서 직접 설계한 공식 개발보드**이다.
+
+NUCLEO 보드에는 단순히 MCU 칩만 있는 것이 아니라, 개발에 필요한 필수 요소들이 함께 포함되어 있다.
+
+* STM32 MCU 1개
+* ST-LINK 디버거/프로그래머 (보드 내장)
+* USB 전원 및 다운로드 회로
+* 사용자 LED, 버튼
+* 핀 헤더 (Arduino UNO R3 호환 + Morpho 핀)
+
+이 덕분에 별도의 프로그래머나 복잡한 회로 없이 **USB 케이블 하나만으로 바로 개발**할 수 있다.
+
+정리하면:
+
+* **STM32** → MCU 칩(부품)
+* **NUCLEO** → STM32 MCU를 탑재한 개발보드(플랫폼)
+
+실제 제품 개발에서는 NUCLEO 보드로 펌웨어를 개발한 뒤, 양산 단계에서는 STM32 MCU만을 사용해 자체 PCB를 설계한다.
+
+---
+
+## STM32L073RZ와 NUCLEO-L073RZ
+
+본 포스팅에서는 **NUCLEO-L073RZ** 보드를 기준으로 설명한다.
+
+여기서 중요한 점은 다음과 같다.
+
+* **STM32L073RZ** : MCU 칩의 정확한 모델명
+* **NUCLEO-L073RZ** : STM32L073RZ MCU를 탑재한 개발보드
+
+### STM32L073RZ 파트넘버 해석
+
+`STM32L073RZ`는 다음과 같은 의미를 가진다.
+
+* **STM32** : ST의 32비트 MCU 패밀리
+* **L** : Low Power (저전력 라인업)
+* **0** : L0 시리즈
+* **73** : 해당 시리즈 내 기능/메모리 그룹
+* **R** : 64핀 패키지
+* **Z** : Flash 메모리 192KB
+
+이 MCU는 **ARM Cortex-M0+ 코어**를 사용하며, 초저전력 동작이 특징이다.
+
+---
+
+## ARM Cortex-M0+란?
+
+STM32L073RZ에 탑재된 **ARM Cortex-M0+** 는 임베디드 시스템을 위한 CPU 코어로, 다음과 같은 특징을 가진다.
+
+* 단순한 구조
+* 매우 낮은 전력 소모
+* 빠른 인터럽트 응답
+* 실시간 제어에 최적화
+
+Cortex-M0+는 고성능 연산보다는 **이벤트 기반 제어(인터럽트)** 와 **저전력 동작**에 초점을 맞춘 코어이다.
+
+---
+
+## 정리
+
+* STM32는 ST가 개발한 ARM Cortex-M 기반 32비트 MCU 제품군이다.
+* NUCLEO는 STM32 MCU를 쉽게 개발하기 위한 ST 공식 개발보드이다.
+* STM32L073RZ는 Cortex-M0+ 기반의 저전력 MCU 칩이다.
+* NUCLEO-L073RZ는 해당 MCU를 탑재한 개발보드이다.
+
+---
