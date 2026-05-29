@@ -1,8 +1,60 @@
 ---
-title: "Do"
-date: 2026-05-28
+title: "UDS와 DoIP로 이해하는 자동차 진단통신과 OTA"
+date: 2026-05-29
 tags: 
 - Embedded
 - Mobility
-description: 최근 진행한 프로젝트에서 CAN 통신 위주로 다시 살펴보기
+description: UDS와 DoIP로 자동차 진단통신과 OTA 알아보기
 ---
+
+자동차 `UDS`와 `DoIP`는 차량의 전자제어장치(**ECU**)를 진단하고 소프트웨어를 업데이트하기 위해 사용하는 핵심 프로토콜과 표준이다.
+
+### UDS(Unified Diagnostic Services)
+
+`UDS`는 **ISO 14229-1**에 지정된 진단 요청과 응답을 정의하는 응용 계층에서의 프로토콜이다. 
+
+UDS는 **SID(ServiceID)** 와 페이로드로 구성되며 SID는 어떤 행위를 할 것인지를 나타내고 페이로드는 그 내용이다.
+
+예를 들어 `0x22` SID는 데이터 읽기를 `0x2E`는 데이터 쓰기를 `0x34 ~ 0x37`은 펌웨어 전송을 나타낸다.
+
+기존에는 이러한 UDS 메시지를 CAN 버스를 통해서 전달했다. CAN의 경우에는 최대 1Mbps 속도(CAN-FD의 경우 8Mbps)를 지원한다. 최근에는 ADAS와 자율주행 기능이 차량에 탑재가 되면서
+기존 CAN 버스로는 대역폭이 부족해졌고 이를 해결하기 위하여 고속 전송이 가능한 이더넷이 도입되었다.
+
+UDS를 이더넷으로 보내기 위해서는 `DoIP`로 UDS 패킷을 감싸서 전송해야 한다.
+
+### DoIP(Diagnostics over Internet Protocol )
+
+![doip-osi-model](/images/post-57/doip-osi-model.png)
+<cite>https://www.rapidseasuite.com/documentation/rapidsea/protocols/iso_13400_doip.html</cite>
+`DoIP`는 `ISO 13400`에 표준으로 정의된 국제 규격이다.
+
+위 사진과 같이 **UDS**는 7계층에 존재하고 **DoIP**는 3-4 계층에 존재한다.
+
+![doip-structure](/images/post-57/doip-structure.png)
+<cite>https://www.rapidseasuite.com/documentation/rapidsea/protocols/iso_13400_doip.html</cite>
+
+UDS 페이로드를 이더넷으로 보내기 위해 DoIP를 사용하는 것인데 그 이유는 TCP의 경우는 IP와 PORT로 송수신 위치를 특정하지만
+
+자동차안에는 수십~수백개의 ECU가 존재하고 각 ECU를 구별하는 것은 IP가 아니라 ECU의 논리 주소이다. 
+
+또한 DoIP는 `Routing Activation(인증된 클라이언트만 진단 허용)` 역할도 한다.
+
+이러한 내용으로 이더넷을 통한 진단 통신에서는 DoIP를 사용한다.
+
+### 서버와 클라이언트
+
+보통 진단 통신을 할 경우 보통 자동차의 ECU가 서버이고 테스터 장비가 클라이언트이다.
+
+`OTA(Over-The-Air)` 업데이트의 경우에는 테스터 장비 대신 OTA 서버나 게이트웨이 역할을 하는 장치가 클라이언트가 된다. 클라이언트는 DoIP를 통해 차량 내부 게이트웨이에 TCP로 연결하고 게이트웨이는 DoIP 헤더를 해석해 **목적지 ECU의 논리 주소(uint16_t target_addr)** 를 확인한 뒤 내부 CAN 버스를 통해 해당 ECU에 UDS 메시지를 전달한다.
+
+이 구조 덕분에 외부에서는 이더넷 하나로 연결하더라도 차량 내부의 특정 ECU를 정확히 타겟으로 삼아 진단하거나 펌웨어를 업데이트할 수 있다.
+
+현재는 위의 내용을 기반으로 [FOTA 프로젝트](https://github.com/kdt-fibonacci)를 진행하고 있다.
+
+### 참고
+
+[Rapidsea - DoIP Protocol](https://www.rapidseasuite.com/documentation/rapidsea/protocols/iso_13400_doip.html)
+
+[Rapidsea - UDS Protocol](https://www.rapidseasuite.com/documentation/rapidsea/protocols/iso_14229_uds.html)
+
+***
